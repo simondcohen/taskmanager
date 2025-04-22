@@ -49,6 +49,16 @@ export interface VideoItem {
   dateAdded: string;
 }
 
+export interface PodcastItem {
+  id: number;
+  title: string;
+  creator?: string;
+  episode?: string;
+  notes?: string;
+  completed: boolean;
+  dateAdded: string;
+}
+
 export interface ShoppingItem {
   id: number;
   name: string;
@@ -71,7 +81,7 @@ export interface GroceryItem {
   dateAdded: string;
 }
 
-export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery';
+export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts';
 
 export interface CalendarDay {
   day: number;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote } from 'lucide-react';
+import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote, Headphones } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { DailyNotes } from './components/DailyNotes';
 import { TodoList } from './components/TodoList';
@@ -9,7 +9,8 @@ import { EntertainmentList } from './components/EntertainmentList';
 import { VideoList } from './components/VideoList';
 import { ShoppingList } from './components/ShoppingList';
 import { GroceryList } from './components/GroceryList';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote } from './types';
+import { PodcastList } from './components/PodcastList';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem } from './types';
 
 // Group tabs by category
 const tabGroups = [
@@ -29,6 +30,7 @@ const tabGroups = [
       { id: 'reading', label: 'Reading List', icon: Book },
       { id: 'entertainment', label: 'Movies & TV', icon: Film },
       { id: 'videos', label: 'Videos', icon: Video },
+      { id: 'podcasts', label: 'Podcasts', icon: Headphones },
     ],
   },
   {
@@ -243,8 +245,8 @@ function App() {
         id: 1,
         name: "Laundry Detergent",
         quantity: 1,
-        category: "household",
-        priority: "high",
+        category: "household" as "household",
+        priority: "high" as "high",
         completed: false,
         dateAdded: formatDate(today)
       },
@@ -252,8 +254,8 @@ function App() {
         id: 2,
         name: "USB-C Cable",
         quantity: 2,
-        category: "electronics",
-        priority: "low",
+        category: "electronics" as "electronics",
+        priority: "low" as "low",
         notes: "At least 6ft long",
         completed: false,
         dateAdded: formatDate(today)
@@ -264,7 +266,7 @@ function App() {
         id: 1,
         name: "Fresh Spinach",
         quantity: 2,
-        category: "produce",
+        category: "produce" as "produce",
         unit: "bags",
         notes: "Organic preferred",
         completed: false,
@@ -274,7 +276,7 @@ function App() {
         id: 2,
         name: "Greek Yogurt",
         quantity: 1,
-        category: "dairy",
+        category: "dairy" as "dairy",
         unit: "32oz tub",
         completed: false,
         dateAdded: formatDate(today)
@@ -283,9 +285,29 @@ function App() {
         id: 3,
         name: "Chicken Breast",
         quantity: 2,
-        category: "meat",
+        category: "meat" as "meat",
         unit: "lbs",
         notes: "Free-range",
+        completed: false,
+        dateAdded: formatDate(today)
+      }
+    ],
+    podcastItems: [
+      {
+        id: 1,
+        title: "The Daily Tech News",
+        creator: "Tech Media Inc",
+        episode: "Latest in AI Development",
+        notes: "Interesting discussion on LLMs",
+        completed: false,
+        dateAdded: formatDate(today)
+      },
+      {
+        id: 2,
+        title: "Code Review",
+        creator: "Developer Network",
+        episode: "Best Practices in React",
+        notes: "Tips for component optimization",
         completed: false,
         dateAdded: formatDate(today)
       }
@@ -301,6 +323,7 @@ function App() {
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
+  const [podcastItems, setPodcastItems] = useState<PodcastItem[]>([]);
   const [selectedDay, setSelectedDay] = useState(formatDate(new Date()));
 
   // Save active tab to localStorage when it changes
@@ -324,6 +347,7 @@ function App() {
           setVideoItems(parsedData.videoItems || []);
           setShoppingItems(parsedData.shoppingItems || []);
           setGroceryItems(parsedData.groceryItems || []);
+          setPodcastItems(parsedData.podcastItems || []);
         } else {
           setTemplateTasks([]);
           setChecklists({});
@@ -334,6 +358,7 @@ function App() {
           setVideoItems([]);
           setShoppingItems([]);
           setGroceryItems([]);
+          setPodcastItems([]);
         }
       } catch (err) {
         console.error('Error loading data:', err);
@@ -346,6 +371,7 @@ function App() {
         setVideoItems([]);
         setShoppingItems([]);
         setGroceryItems([]);
+        setPodcastItems([]);
       }
     } else {
       setTemplateTasks(demoData.templateTasks);
@@ -357,6 +383,7 @@ function App() {
       setVideoItems(demoData.videoItems);
       setShoppingItems(demoData.shoppingItems);
       setGroceryItems(demoData.groceryItems);
+      setPodcastItems(demoData.podcastItems || []);
     }
   }, [isShowingDemo]);
 
@@ -372,11 +399,12 @@ function App() {
         entertainmentItems,
         videoItems,
         shoppingItems,
-        groceryItems
+        groceryItems,
+        podcastItems
       };
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
-  }, [templateTasks, checklists, notes, todos, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, isShowingDemo]);
+  }, [templateTasks, checklists, notes, todos, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, isShowingDemo]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -398,146 +426,146 @@ function App() {
               {tabGroups.map((group, groupIndex) => (
                 <div
                   key={group.name}
-                  className={`flex-1 ${
-                    groupIndex !== 0 ? 'sm:border-l border-gray-200' : ''
-                  }`}
+                  className={`flex-1 ${groupIndex > 0 ? 'sm:border-l' : ''}`}
                 >
-                  <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 font-medium text-sm text-gray-600">
+                  <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
                     {group.name}
                   </div>
-                  <div className="p-2">
+                  <div className="px-2 pb-2">
                     {group.tabs.map((tab) => {
                       const Icon = tab.icon;
                       return (
                         <button
                           key={tab.id}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                            activeTab === tab.id
+                              ? 'bg-indigo-100 text-indigo-700'
+                              : 'hover:bg-gray-100'
+                          }`}
                           onClick={() => setActiveTab(tab.id as Tab)}
-                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors
-                            ${activeTab === tab.id
-                              ? 'bg-indigo-50 text-indigo-600'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-indigo-600'
-                            }`}
                         >
                           <Icon className="w-5 h-5 flex-shrink-0" />
                           {!isCompactView && (
-                            <span className="truncate">{tab.label}</span>
+                            <span className="ml-3">{tab.label}</span>
                           )}
                         </button>
                       );
                     })}
                   </div>
-                
                 </div>
               ))}
             </div>
           </nav>
         </header>
 
-        {activeTab === 'daily' && (
-          <DailyChecklist
-            templateTasks={templateTasks}
-            checklists={checklists}
-            selectedDay={selectedDay}
-            onUpdateChecklists={setChecklists}
-            onUpdateTemplate={setTemplateTasks}
-            onSelectDay={setSelectedDay}
-          />
-        )}
+        <main>
+          {activeTab === 'daily' && (
+            <DailyChecklist
+              templateTasks={templateTasks}
+              checklists={checklists}
+              selectedDay={selectedDay}
+              onUpdateChecklists={setChecklists}
+              onUpdateTemplate={setTemplateTasks}
+              onSelectDay={setSelectedDay}
+            />
+          )}
 
-        {activeTab === 'notes' && (
-          <DailyNotes
-            notes={notes}
-            selectedDay={selectedDay}
-            onUpdateNotes={setNotes}
-            onSelectDay={setSelectedDay}
-          />
-        )}
+          {activeTab === 'notes' && (
+            <DailyNotes
+              notes={notes}
+              selectedDay={selectedDay}
+              onUpdateNotes={setNotes}
+              onSelectDay={setSelectedDay}
+            />
+          )}
 
-        {activeTab === 'todos' && (
-          <TodoList
-            todos={todos}
-            onUpdateTodos={setTodos}
-          />
-        )}
+          {activeTab === 'todos' && (
+            <TodoList
+              todos={todos}
+              onUpdateTodos={setTodos}
+            />
+          )}
 
-        {activeTab === 'grocery' && (
-          <GroceryList
-            items={groceryItems}
-            onUpdateItems={setGroceryItems}
-          />
-        )}
+          {activeTab === 'grocery' && (
+            <GroceryList
+              items={groceryItems}
+              onUpdateItems={setGroceryItems}
+            />
+          )}
 
-        {activeTab === 'shopping' && (
-          <ShoppingList
-            items={shoppingItems}
-            onUpdateItems={setShoppingItems}
-          />
-        )}
+          {activeTab === 'shopping' && (
+            <ShoppingList
+              items={shoppingItems}
+              onUpdateItems={setShoppingItems}
+            />
+          )}
 
-        {activeTab === 'reading' && (
-          <ReadingList
-            items={readingItems}
-            onUpdateItems={setReadingItems}
-          />
-        )}
+          {activeTab === 'reading' && (
+            <ReadingList
+              items={readingItems}
+              onUpdateItems={setReadingItems}
+            />
+          )}
 
-        {activeTab === 'entertainment' && (
-          <EntertainmentList
-            items={entertainmentItems}
-            onUpdateItems={setEntertainmentItems}
-          />
-        )}
+          {activeTab === 'entertainment' && (
+            <EntertainmentList
+              items={entertainmentItems}
+              onUpdateItems={setEntertainmentItems}
+            />
+          )}
 
-        {activeTab === 'videos' && (
-          <VideoList
-            items={videoItems}
-            onUpdateItems={setVideoItems}
-          />
-        )}
+          {activeTab === 'videos' && (
+            <VideoList
+              items={videoItems}
+              onUpdateItems={setVideoItems}
+            />
+          )}
 
-        {activeTab === 'data' && (
-          <DataManagement
-            templateTasks={templateTasks}
-            checklists={checklists}
-            todos={todos}
-            groceryItems={groceryItems}
-            shoppingItems={shoppingItems}
-            readingItems={readingItems}
-            entertainmentItems={entertainmentItems}
-            videoItems={videoItems}
-            selectedDay={selectedDay}
-            onImportData={(data) => {
-              setTemplateTasks(data.templateTasks || []);
-              setChecklists(data.checklists || {});
-              setTodos(data.todos || []);
-            }}
-          />
-        )}
+          {activeTab === 'podcasts' && (
+            <PodcastList
+              items={podcastItems}
+              onUpdateItems={setPodcastItems}
+            />
+          )}
 
-        <div className="mt-8 flex justify-center gap-4">
-          <button
-            onClick={() => setIsShowingDemo(true)}
-            className={`px-4 py-2 rounded transition-colors ${
-              isShowingDemo
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            disabled={isShowingDemo}
-          >
-            Show Demo Data
-          </button>
-          <button
-            onClick={() => setIsShowingDemo(false)}
-            className={`px-4 py-2 rounded transition-colors ${
-              !isShowingDemo
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
-            }`}
-            disabled={!isShowingDemo}
-          >
-            Hide Demo Data
-          </button>
-        </div>
+          {activeTab === 'data' && (
+            <DataManagement
+              templateTasks={templateTasks}
+              checklists={checklists}
+              todos={todos}
+              groceryItems={groceryItems}
+              shoppingItems={shoppingItems}
+              readingItems={readingItems}
+              entertainmentItems={entertainmentItems}
+              videoItems={videoItems}
+              podcastItems={podcastItems}
+              selectedDay={selectedDay}
+              onImportData={(data) => {
+                setTemplateTasks(data.templateTasks || []);
+                setChecklists(data.checklists || {});
+                setTodos(data.todos || []);
+              }}
+              onResetApp={() => {
+                if (confirm('Are you sure you want to reset the app? This will delete all your data.')) {
+                  localStorage.removeItem('react-task-manager-app');
+                  setTemplateTasks([]);
+                  setChecklists({});
+                  setNotes({});
+                  setTodos([]);
+                  setReadingItems([]);
+                  setEntertainmentItems([]);
+                  setVideoItems([]);
+                  setShoppingItems([]);
+                  setGroceryItems([]);
+                  setPodcastItems([]);
+                }
+              }}
+              onLoadDemo={() => setIsShowingDemo(true)}
+              onClearDemo={() => setIsShowingDemo(false)}
+              isShowingDemo={isShowingDemo}
+            />
+          )}
+        </main>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem } from '../types';
+import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem } from '../types';
 import { X } from 'lucide-react';
 
 interface DataManagementProps {
@@ -11,8 +11,13 @@ interface DataManagementProps {
   readingItems: ReadingItem[];
   entertainmentItems: EntertainmentItem[];
   videoItems: VideoItem[];
+  podcastItems: PodcastItem[];
   selectedDay: string;
   onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[] }) => void;
+  onResetApp?: () => void;
+  onLoadDemo?: () => void;
+  onClearDemo?: () => void;
+  isShowingDemo?: boolean;
 }
 
 export function DataManagement({
@@ -24,8 +29,13 @@ export function DataManagement({
   readingItems,
   entertainmentItems,
   videoItems,
+  podcastItems,
   selectedDay,
-  onImportData
+  onImportData,
+  onResetApp,
+  onLoadDemo,
+  onClearDemo,
+  isShowingDemo
 }: DataManagementProps) {
   const [exportMessage, setExportMessage] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
@@ -152,7 +162,8 @@ export function DataManagement({
         shopping: shoppingItems,
         reading: readingItems,
         entertainment: entertainmentItems,
-        videos: videoItems
+        videos: videoItems,
+        podcasts: podcastItems
       }
     };
 
@@ -188,7 +199,11 @@ export function DataManagement({
       if (Array.isArray(data.todos)) {
         updated = true;
         const newTodos = mergeItems(todos, data.todos);
-        onImportData({ ...checklists, todos: newTodos });
+        onImportData({ 
+          templateTasks: templateTasks, 
+          checklists: checklists, 
+          todos: newTodos 
+        });
       }
 
       if (Array.isArray(data.grocery)) {
@@ -219,6 +234,12 @@ export function DataManagement({
         updated = true;
         const newVideos = mergeItems(videoItems, data.videos);
         // Update videoItems state
+      }
+
+      if (Array.isArray(data.podcasts)) {
+        updated = true;
+        const newPodcasts = mergeItems(podcastItems, data.podcasts);
+        // Update podcastItems state
       }
 
       if (updated) {
@@ -356,7 +377,8 @@ export function DataManagement({
   "shopping":    [ /* ShoppingItem[] */ ],
   "reading":     [ /* ReadingItem[] */ ],
   "entertainment":[ /* EntertainmentItem[] */ ],
-  "videos":      [ /* VideoItem[] */ ]
+  "videos":      [ /* VideoItem[] */ ],
+  "podcasts":    [ /* PodcastItem[] */ ]
 }`}
                     </pre>
                     <h5 className="font-medium mt-4">Required fields for each list</h5>
@@ -371,7 +393,9 @@ ReadingItem { id, title, notes?, completed, dateAdded }
 
 EntertainmentItem { id, title, notes?, completed, dateAdded }
 
-VideoItem { id, title, notes?, completed, dateAdded }`}
+VideoItem { id, title, notes?, completed, dateAdded }
+
+PodcastItem { id, title, creator?, episode?, notes?, completed, dateAdded }`}
                     </pre>
                     <p className="text-sm text-gray-600 mt-4">
                       Notes:
@@ -383,6 +407,42 @@ VideoItem { id, title, notes?, completed, dateAdded }`}
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo Data and Reset Section */}
+      {(onResetApp || onLoadDemo || onClearDemo) && (
+        <div className="border-t pt-6 mt-6">
+          <h3 className="text-lg font-medium mb-4">App Management</h3>
+          <div className="flex flex-col gap-4">
+            {onResetApp && (
+              <button
+                onClick={onResetApp}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Reset App
+              </button>
+            )}
+            
+            {(onLoadDemo && onClearDemo) && (
+              <div className="flex gap-4">
+                <button
+                  onClick={onLoadDemo}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  disabled={isShowingDemo}
+                >
+                  Load Demo Data
+                </button>
+                <button
+                  onClick={onClearDemo}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                  disabled={!isShowingDemo}
+                >
+                  Clear Demo Data
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
