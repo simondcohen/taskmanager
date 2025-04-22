@@ -81,7 +81,15 @@ export interface GroceryItem {
   dateAdded: string;
 }
 
-export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts';
+export interface DeadlineItem { 
+  id: string; 
+  title: string; 
+  dueDate: string; 
+  notes?: string;
+  completed?: boolean;
+}
+
+export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines';
 
 export interface CalendarDay {
   day: number;

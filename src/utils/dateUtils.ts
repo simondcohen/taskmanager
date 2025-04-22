@@ -28,5 +28,22 @@ export const dateUtils = {
   isToday: (date: Date): boolean => {
     const today = new Date();
     return dateUtils.isSameDay(date, today);
+  },
+  
+  isOverdue: (dateString: string): boolean => {
+    const date = dateUtils.parseDate(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return date < today;
+  },
+  
+  formatDisplayDate: (dateString: string): string => {
+    const date = dateUtils.parseDate(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
   }
 };

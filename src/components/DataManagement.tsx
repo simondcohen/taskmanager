@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem } from '../types';
+import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem } from '../types';
 import { X } from 'lucide-react';
 
 interface DataManagementProps {
@@ -12,6 +12,7 @@ interface DataManagementProps {
   entertainmentItems: EntertainmentItem[];
   videoItems: VideoItem[];
   podcastItems: PodcastItem[];
+  deadlines?: DeadlineItem[];
   selectedDay: string;
   onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[] }) => void;
   onResetApp?: () => void;
@@ -30,6 +31,7 @@ export function DataManagement({
   entertainmentItems,
   videoItems,
   podcastItems,
+  deadlines,
   selectedDay,
   onImportData,
   onResetApp,
@@ -163,7 +165,8 @@ export function DataManagement({
         reading: readingItems,
         entertainment: entertainmentItems,
         videos: videoItems,
-        podcasts: podcastItems
+        podcasts: podcastItems,
+        deadlines: deadlines || []
       }
     };
 
