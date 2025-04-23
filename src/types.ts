@@ -43,7 +43,9 @@ export interface EntertainmentItem {
 
 export interface VideoItem {
   id: number;
+  url: string;
   title: string;
+  thumbnailUrl: string;
   notes?: string;
   completed: boolean;
   dateAdded: string;

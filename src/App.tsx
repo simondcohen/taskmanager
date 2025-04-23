@@ -225,19 +225,19 @@ function App() {
     videoItems: [
       {
         id: 1,
-        title: "System Design Fundamentals",
-        platform: "YouTube",
-        duration: "45m",
-        url: "https://example.com/system-design",
+        url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        title: "Rick Astley - Never Gonna Give You Up (Official Music Video)",
+        thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
+        notes: "Classic music video",
         completed: false,
         dateAdded: formatDate(today)
       },
       {
         id: 2,
-        title: "Advanced TypeScript Tips",
-        platform: "YouTube",
-        duration: "25m",
-        url: "https://example.com/typescript-tips",
+        url: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+        title: "Me at the zoo",
+        thumbnailUrl: "https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg",
+        notes: "First video on YouTube",
         completed: false,
         dateAdded: formatDate(today)
       }
