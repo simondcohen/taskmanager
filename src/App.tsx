@@ -12,6 +12,7 @@ import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem, DeadlineItem } from './types';
+import { Category } from './components/CategoryManager';
 
 // Group tabs by category
 const tabGroups = [
@@ -136,7 +137,8 @@ function App() {
         deadline: formatDate(tomorrow),
         time: "15:00",
         completed: false,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Work"
       },
       {
         id: 2,
@@ -144,7 +146,8 @@ function App() {
         deadline: formatDate(new Date(today.setDate(today.getDate() + 5))),
         time: null,
         completed: false,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Work"
       },
       {
         id: 3,
@@ -152,7 +155,8 @@ function App() {
         deadline: formatDate(today),
         time: "14:30",
         completed: true,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Work"
       },
       {
         id: 4,
@@ -168,8 +172,33 @@ function App() {
         deadline: formatDate(tomorrow),
         time: "11:00",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(today),
+        category: "Work"
+      },
+      {
+        id: 6,
+        text: "Gym session",
+        deadline: formatDate(today),
+        time: "18:00",
+        completed: false,
+        dateAdded: formatDate(today),
+        category: "Health"
+      },
+      {
+        id: 7,
+        text: "Buy groceries",
+        deadline: formatDate(tomorrow),
+        time: null,
+        completed: false,
+        dateAdded: formatDate(today),
+        category: "Shopping"
       }
+    ],
+    todoCategories: [
+      { name: "Work", color: "#4F46E5" },
+      { name: "Personal", color: "#0891B2" },
+      { name: "Shopping", color: "#059669" },
+      { name: "Health", color: "#D97706" }
     ],
     readingItems: [
       {
@@ -325,6 +354,7 @@ function App() {
   const [checklists, setChecklists] = useState<DailyChecklists>({});
   const [notes, setNotes] = useState<{ [date: string]: DailyNote[] }>({});
   const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [todoCategories, setTodoCategories] = useState<Category[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
   const [entertainmentItems, setEntertainmentItems] = useState<EntertainmentItem[]>([]);
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
@@ -350,6 +380,7 @@ function App() {
           setChecklists(parsedData.checklists || {});
           setNotes(parsedData.notes || {});
           setTodos(parsedData.todos || []);
+          setTodoCategories(parsedData.todoCategories || []);
           setReadingItems(parsedData.readingItems || []);
           setEntertainmentItems(parsedData.entertainmentItems || []);
           setVideoItems(parsedData.videoItems || []);
@@ -362,6 +393,7 @@ function App() {
           setChecklists({});
           setNotes({});
           setTodos([]);
+          setTodoCategories([]);
           setReadingItems([]);
           setEntertainmentItems([]);
           setVideoItems([]);
@@ -376,6 +408,7 @@ function App() {
         setChecklists({});
         setNotes({});
         setTodos([]);
+        setTodoCategories([]);
         setReadingItems([]);
         setEntertainmentItems([]);
         setVideoItems([]);
@@ -389,6 +422,7 @@ function App() {
       setChecklists(demoData.checklists);
       setNotes(demoData.notes);
       setTodos(demoData.todos);
+      setTodoCategories(demoData.todoCategories || []);
       setReadingItems(demoData.readingItems);
       setEntertainmentItems(demoData.entertainmentItems);
       setVideoItems(demoData.videoItems);
@@ -406,6 +440,7 @@ function App() {
         checklists,
         notes,
         todos,
+        todoCategories,
         readingItems,
         entertainmentItems,
         videoItems,
@@ -416,7 +451,7 @@ function App() {
       };
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
-  }, [isShowingDemo, templateTasks, checklists, notes, todos, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+  }, [isShowingDemo, templateTasks, checklists, notes, todos, todoCategories, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -492,7 +527,12 @@ function App() {
               />
             )}
             {activeTab === 'todos' && (
-              <TodoList todos={todos} onUpdateTodos={setTodos} />
+              <TodoList 
+                todos={todos} 
+                onUpdateTodos={setTodos} 
+                categories={todoCategories}
+                onUpdateCategories={setTodoCategories}
+              />
             )}
             {activeTab === 'grocery' && (
               <GroceryList
@@ -556,6 +596,7 @@ function App() {
                     setChecklists({});
                     setNotes({});
                     setTodos([]);
+                    setTodoCategories([]);
                     setReadingItems([]);
                     setEntertainmentItems([]);
                     setVideoItems([]);

@@ -23,6 +23,7 @@ export interface TodoItem {
   time: string | null;
   completed: boolean;
   dateAdded: string;
+  category?: string;
 }
 
 export interface ReadingItem {
