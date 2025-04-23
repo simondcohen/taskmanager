@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Tag, ChevronDown, ChevronUp } from 'lucide-react';
 
 // Define the category interface
 export interface Category {
@@ -30,6 +30,7 @@ const colorPalette = [
 
 export function CategoryManager({ categories, onUpdateCategories }: CategoryManagerProps) {
   const [newCategory, setNewCategory] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
@@ -60,46 +61,57 @@ export function CategoryManager({ categories, onUpdateCategories }: CategoryMana
   };
 
   return (
-    <div className="mb-6">
-      <h3 className="font-medium text-gray-700 mb-2">Manage Categories</h3>
+    <div>
+      <button 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-2 text-gray-700 font-medium mb-3 hover:text-gray-900"
+      >
+        <Tag className="w-4 h-4" />
+        Manage Categories
+        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
       
-      <div className="flex gap-2 mb-4">
-        <input
-          type="text"
-          value={newCategory}
-          onChange={(e) => setNewCategory(e.target.value)}
-          placeholder="New category name..."
-          className="p-2 border rounded flex-grow"
-        />
-        <button
-          onClick={handleAddCategory}
-          className="bg-indigo-600 text-white px-4 py-2 rounded flex items-center gap-1 hover:bg-indigo-700"
-        >
-          <Plus className="w-4 h-4" />
-          Add
-        </button>
-      </div>
-      
-      {categories.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category, index) => (
-            <div 
-              key={index} 
-              className="py-1 px-3 rounded-full flex items-center gap-1 text-white"
-              style={{ backgroundColor: category.color }}
+      {isExpanded && (
+        <>
+          <div className="flex gap-2 mb-3">
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              placeholder="New category name..."
+              className="p-2 border rounded flex-grow text-sm"
+            />
+            <button
+              onClick={handleAddCategory}
+              className="bg-gray-100 text-gray-700 border border-gray-300 px-3 py-1 rounded flex items-center gap-1 hover:bg-gray-200 text-sm"
             >
-              <span>{category.name}</span>
-              <button
-                onClick={() => handleDeleteCategory(index)}
-                className="text-white hover:text-gray-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <Plus className="w-3 h-3" />
+              Add
+            </button>
+          </div>
+          
+          {categories.length > 0 ? (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {categories.map((category, index) => (
+                <div 
+                  key={index} 
+                  className="py-1 px-2 rounded-full flex items-center gap-1 text-white text-xs"
+                  style={{ backgroundColor: category.color }}
+                >
+                  <span>{category.name}</span>
+                  <button
+                    onClick={() => handleDeleteCategory(index)}
+                    className="text-white hover:text-gray-200"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      ) : (
-        <p className="text-gray-500 text-sm">No categories yet. Add one above.</p>
+          ) : (
+            <p className="text-gray-500 text-xs mb-2">No categories yet. Add one above.</p>
+          )}
+        </>
       )}
     </div>
   );

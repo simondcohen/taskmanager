@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, X } from 'lucide-react';
+import { Edit2, X, Plus, Filter } from 'lucide-react';
 import { TodoItem } from '../types';
 import { CategoryManager, Category } from './CategoryManager';
 
@@ -13,7 +13,7 @@ interface TodoListProps {
 export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories }: TodoListProps) {
   const [todoStatusFilter, setTodoStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [todoSortOption, setTodoSortOption] = useState<'deadline' | 'deadline-reverse' | 'added' | 'alphabetical' | 'category'>('deadline');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>(['all']);
   const [newTodoText, setNewTodoText] = useState('');
   const [newTodoDeadline, setNewTodoDeadline] = useState(getCurrentDate());
   const [newTodoTime, setNewTodoTime] = useState('');
@@ -23,6 +23,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const [editDeadline, setEditDeadline] = useState('');
   const [editTime, setEditTime] = useState('');
   const [editCategory, setEditCategory] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
 
   function getCurrentDate() {
     const d = new Date();
@@ -115,7 +116,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     if (todoStatusFilter === 'completed' && !todo.completed) return false;
     
     // Then apply category filter if needed
-    if (categoryFilter !== 'all' && todo.category !== categoryFilter) return false;
+    if (!categoryFilter.includes('all') && todo.category && !categoryFilter.includes(todo.category)) return false;
     
     return true;
   }).sort((a, b) => {
@@ -166,72 +167,120 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       return;
     }
     
-    if (!newTodoDeadline) {
-      alert('Deadline is required.');
+    const newTodo: TodoItem = {
+      id: Date.now(),
+      text: newTodoText.trim(),
+      deadline: newTodoDeadline || null,
+      time: newTodoTime || null,
+      completed: false,
+      dateAdded: new Date().toISOString(),
+      category: newTodoCategory || undefined
+    };
+    
+    onUpdateTodos([...todos, newTodo]);
+    setNewTodoText('');
+    setNewTodoTime('');
+    // Keep the deadline as the current date
+    // Keep the last used category for convenience
+  }
+
+  function saveEdit() {
+    if (!editText.trim()) {
+      alert('Description is required.');
       return;
     }
     
-    try {
-      // Validate deadline format
-      const deadlineDate = parseLocalDate(newTodoDeadline);
-      if (!deadlineDate) {
-        alert('Invalid date format. Please use YYYY-MM-DD.');
-        return;
-      }
-      
-      const newTodo: TodoItem = {
-        id: Date.now(),
-        text: newTodoText.trim(),
-        deadline: newTodoDeadline,
-        time: newTodoTime || null,
-        category: newTodoCategory || undefined,
-        completed: false,
-        dateAdded: getCurrentDate()
+    const newTodos = [...todos];
+    const todoToEdit = filteredTodos[editIndex];
+    const originalIndex = newTodos.findIndex(t => t.id === todoToEdit.id);
+    if (originalIndex !== -1) {
+      newTodos[originalIndex] = {
+        ...todoToEdit,
+        text: editText.trim(),
+        deadline: editDeadline || null,
+        time: editTime || null,
+        category: editCategory || undefined
       };
-
-      onUpdateTodos([...todos, newTodo]);
-      setNewTodoText('');
-      setNewTodoTime('');
-      // Keep the deadline at today's date for convenience
-      setNewTodoCategory('');
-    } catch (err) {
-      console.error('Error adding todo:', err);
-      alert('Failed to add todo. Please try again.');
+      onUpdateTodos(newTodos);
+    } else {
+      console.error('Could not find todo with ID:', todoToEdit.id);
     }
+    setEditIndex(-1);
   }
+
+  // Function to handle multiple category selection
+  const handleCategoryFilterChange = (categoryName: string) => {
+    // If 'all' is clicked, reset to just 'all'
+    if (categoryName === 'all') {
+      setCategoryFilter(['all']);
+      return;
+    }
+
+    // Remove 'all' when selecting specific categories
+    const newFilter = categoryFilter.filter(cat => cat !== 'all');
+    
+    // Toggle the selected category
+    if (newFilter.includes(categoryName)) {
+      // Remove the category if already selected
+      const updatedFilter = newFilter.filter(cat => cat !== categoryName);
+      // If no categories selected, default back to 'all'
+      setCategoryFilter(updatedFilter.length ? updatedFilter : ['all']);
+    } else {
+      // Add the category
+      setCategoryFilter([...newFilter, categoryName]);
+    }
+  };
 
   return (
     <section className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-indigo-700 mb-6">To-Do Items with Deadlines</h2>
+      <h2 className="text-xl font-semibold text-indigo-700 mb-4">To-Do Items</h2>
       
-      <CategoryManager 
-        categories={categories}
-        onUpdateCategories={onUpdateCategories}
-      />
-
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Status:</label>
-            <select
-              value={todoStatusFilter}
-              onChange={(e) => setTodoStatusFilter(e.target.value as any)}
-              className="border rounded p-2"
-            >
-              <option value="all">All Items</option>
-              <option value="active">Active Only</option>
-              <option value="completed">Completed Only</option>
-            </select>
+      {/* New ToDo Form - Now at the top, more prominent */}
+      <div className="bg-indigo-50 rounded-lg p-4 mb-6 shadow-sm">
+        <h3 className="font-medium text-indigo-800 mb-3">Add New To-Do</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="col-span-1 md:col-span-2">
+            <input
+              type="text"
+              value={newTodoText}
+              onChange={(e) => setNewTodoText(e.target.value)}
+              placeholder="What needs to be done?"
+              className="w-full p-3 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            />
           </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Category:</label>
+          <div>
+            <div className="flex items-center mb-1">
+              <label className="text-xs text-indigo-700 font-medium">Due Date (Optional)</label>
+            </div>
+            <input
+              type="date"
+              value={newTodoDeadline}
+              onChange={(e) => setNewTodoDeadline(e.target.value)}
+              min={getCurrentDate()}
+              className="w-full p-2 border border-indigo-200 rounded-lg"
+            />
+          </div>
+          <div>
+            <div className="flex items-center mb-1">
+              <label className="text-xs text-indigo-700 font-medium">Time (Optional)</label>
+            </div>
+            <input
+              type="time"
+              value={newTodoTime}
+              onChange={(e) => setNewTodoTime(e.target.value)}
+              className="w-full p-2 border border-indigo-200 rounded-lg"
+            />
+          </div>
+          <div>
+            <div className="flex items-center mb-1">
+              <label className="text-xs text-indigo-700 font-medium">Category (Optional)</label>
+            </div>
             <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="border rounded p-2"
+              value={newTodoCategory}
+              onChange={(e) => setNewTodoCategory(e.target.value)}
+              className="w-full p-2 border border-indigo-200 rounded-lg"
             >
-              <option value="all">All Categories</option>
+              <option value="">No Category</option>
               {categories.map(category => (
                 <option key={category.name} value={category.name}>
                   {category.name}
@@ -239,30 +288,101 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
               ))}
             </select>
           </div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Sort By:</label>
-            <select
-              value={todoSortOption}
-              onChange={(e) => setTodoSortOption(e.target.value as any)}
-              className="border rounded p-2"
+          <div className="col-span-1 md:col-span-2">
+            <button
+              onClick={addTodo}
+              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium transition"
             >
-              <option value="deadline">Deadline (Soonest First)</option>
-              <option value="deadline-reverse">Deadline (Latest First)</option>
-              <option value="added">Date Added</option>
-              <option value="alphabetical">Alphabetical</option>
-              <option value="category">Category</option>
-            </select>
+              <Plus className="w-4 h-4" />
+              Add To-Do
+            </button>
           </div>
         </div>
       </div>
+      
+      {/* Filters Section - Collapsible */}
+      <div className="mb-6">
+        <button 
+          onClick={() => setShowFilters(!showFilters)}
+          className="flex items-center gap-2 text-indigo-600 font-medium mb-2 hover:text-indigo-800"
+        >
+          <Filter className="w-4 h-4" />
+          {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+        
+        {showFilters && (
+          <div className="bg-gray-50 p-4 rounded-lg transition-all">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">Status</label>
+                <select
+                  value={todoStatusFilter}
+                  onChange={(e) => setTodoStatusFilter(e.target.value as any)}
+                  className="w-full border rounded p-2"
+                >
+                  <option value="all">All Items</option>
+                  <option value="active">Active Only</option>
+                  <option value="completed">Completed Only</option>
+                </select>
+              </div>
 
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">Sort By</label>
+                <select
+                  value={todoSortOption}
+                  onChange={(e) => setTodoSortOption(e.target.value as any)}
+                  className="w-full border rounded p-2"
+                >
+                  <option value="deadline">Deadline (Soonest First)</option>
+                  <option value="deadline-reverse">Deadline (Latest First)</option>
+                  <option value="added">Date Added</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="category">Category</option>
+                </select>
+              </div>
+              
+              <div className="sm:col-span-2">
+                <label className="block text-gray-700 text-sm font-medium mb-2">Filter Categories</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setCategoryFilter(['all'])}
+                    className={`px-3 py-1 rounded-full text-sm ${categoryFilter.includes('all') 
+                      ? 'bg-indigo-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  >
+                    All Categories
+                  </button>
+                  {categories.map(category => (
+                    <button
+                      key={category.name}
+                      onClick={() => handleCategoryFilterChange(category.name)}
+                      className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+                        categoryFilter.includes(category.name)
+                          ? 'text-white' 
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                      style={categoryFilter.includes(category.name) ? { backgroundColor: category.color } : {}}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+                {categories.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">No categories available. Create categories below.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* To-Do List */}
       <div className="space-y-4">
         {filteredTodos.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
-            No to-do items to display. Add new items below.
+            No to-do items to display. Add new items above.
           </p>
-        ) : (
+        ) :
           <ul className="space-y-2">
             {filteredTodos.map((todo, index) => {
               const categoryColor = todo.category ? getCategoryColor(todo.category) : '';
@@ -283,14 +403,14 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                   } : {}}
                 >
                   {editIndex === index ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <input
                         type="text"
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         className="w-full p-2 border rounded"
                       />
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <input
                           type="date"
                           value={editDeadline}
@@ -316,38 +436,18 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                           ))}
                         </select>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            if (!editText.trim() || !editDeadline) {
-                              alert('Description and deadline required.');
-                              return;
-                            }
-                            const newTodos = [...todos];
-                            const originalIndex = newTodos.findIndex(t => t.id === todo.id);
-                            if (originalIndex !== -1) {
-                              newTodos[originalIndex] = {
-                                ...todo,
-                                text: editText.trim(),
-                                deadline: editDeadline,
-                                time: editTime || null,
-                                category: editCategory || undefined
-                              };
-                              onUpdateTodos(newTodos);
-                            } else {
-                              console.error('Could not find todo with ID:', todo.id);
-                            }
-                            setEditIndex(-1);
-                          }}
-                          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                        >
-                          Save
-                        </button>
+                      <div className="flex justify-end gap-2 mt-2">
                         <button
                           onClick={() => setEditIndex(-1)}
-                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                          className="px-3 py-1 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                         >
                           Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          Save
                         </button>
                       </div>
                     </div>
@@ -388,23 +488,25 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            Due: {todo.deadline}
-                            {todo.time && ` at ${formatTimeDisplay(todo.time)}`}
-                            {isDueToday(todo) && !todo.completed && (
-                              <span className="ml-2 text-blue-600 font-bold">DUE TODAY</span>
-                            )}
-                            {isPastDeadline(todo) && !todo.completed && (
-                              <span className="ml-2 text-red-600 font-bold">OVERDUE</span>
-                            )}
-                          </div>
+                          {todo.deadline && (
+                            <div className="text-sm text-gray-500">
+                              Due: {todo.deadline}
+                              {todo.time && ` at ${formatTimeDisplay(todo.time)}`}
+                              {isDueToday(todo) && !todo.completed && (
+                                <span className="ml-2 text-blue-600 font-bold">DUE TODAY</span>
+                              )}
+                              {isPastDeadline(todo) && !todo.completed && (
+                                <span className="ml-2 text-red-600 font-bold">OVERDUE</span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
                             setEditText(todo.text);
-                            setEditDeadline(todo.deadline);
+                            setEditDeadline(todo.deadline || '');
                             setEditTime(todo.time || '');
                             setEditCategory(todo.category || '');
                             setEditIndex(index);
@@ -430,50 +532,15 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
               );
             })}
           </ul>
-        )}
-
-        <div className="mt-6 space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <input
-              type="text"
-              value={newTodoText}
-              onChange={(e) => setNewTodoText(e.target.value)}
-              placeholder="New to-do description"
-              className="flex-1 p-2 border rounded"
-            />
-            <input
-              type="date"
-              value={newTodoDeadline}
-              onChange={(e) => setNewTodoDeadline(e.target.value)}
-              min={getCurrentDate()}
-              className="p-2 border rounded"
-            />
-            <input
-              type="time"
-              value={newTodoTime}
-              onChange={(e) => setNewTodoTime(e.target.value)}
-              className="p-2 border rounded"
-            />
-            <select
-              value={newTodoCategory}
-              onChange={(e) => setNewTodoCategory(e.target.value)}
-              className="p-2 border rounded"
-            >
-              <option value="">No Category</option>
-              {categories.map(category => (
-                <option key={category.name} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={addTodo}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Add To-Do
-          </button>
-        </div>
+        }
+      </div>
+      
+      {/* Category Manager - Moved to the bottom */}
+      <div className="mt-10 pt-6 border-t border-gray-200">
+        <CategoryManager 
+          categories={categories}
+          onUpdateCategories={onUpdateCategories}
+        />
       </div>
     </section>
   );

@@ -19,7 +19,7 @@ export interface DailyNote {
 export interface TodoItem {
   id: number;
   text: string;
-  deadline: string;
+  deadline: string | null;
   time: string | null;
   completed: boolean;
   dateAdded: string;
