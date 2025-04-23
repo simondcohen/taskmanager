@@ -188,6 +188,25 @@ export function DataManagement({
 
             <div className="flex gap-4">
               <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Paste JSON
+              </button>
+            </div>
+          </div>
+          {exportMessage && (
+            <div className="mt-2 text-sm text-green-600 font-medium">
+              {exportMessage}
+            </div>
+          )}
+        </div>
+
+        <div className="border-t pt-6">
+          <h3 className="text-lg font-medium mb-4">Backups</h3>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-4">
+              <button
                 onClick={downloadData}
                 className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
@@ -202,19 +221,8 @@ export function DataManagement({
                   onChange={handleFileUpload}
                 />
               </label>
-              <button
-                onClick={() => setIsImportModalOpen(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-              >
-                Paste JSON
-              </button>
             </div>
           </div>
-          {exportMessage && (
-            <div className="mt-2 text-sm text-green-600 font-medium">
-              {exportMessage}
-            </div>
-          )}
         </div>
       </div>
 
