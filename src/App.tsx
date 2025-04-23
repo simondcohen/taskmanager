@@ -174,28 +174,33 @@ function App() {
     readingItems: [
       {
         id: 1,
-        title: "The Pragmatic Programmer",
-        author: "David Thomas, Andrew Hunt",
-        type: "book",
-        notes: "Recommended by tech lead",
+        url: "https://medium.com/javascript-scene/master-the-javascript-interview-what-is-functional-programming-7f218c68b3a0",
+        title: "Master the JavaScript Interview: What is Functional Programming?",
+        siteName: "Medium",
+        description: "Functional programming has become a really important discussion lately with the rise of libraries that encourage functional techniques.",
+        imageUrl: "https://miro.medium.com/max/1200/1*qzaV7fHQYktynJ3aBEBIrg.jpeg",
+        notes: "Important concepts for modern JavaScript",
         completed: false,
         dateAdded: formatDate(yesterday)
       },
       {
         id: 2,
-        title: "Understanding ECMAScript 6",
-        author: "Nicholas C. Zakas",
-        type: "book",
-        url: "https://leanpub.com/understandinges6",
+        url: "https://reactjs.org/docs/hooks-intro.html",
+        title: "Introducing Hooks",
+        siteName: "React",
+        description: "Hooks are a new addition in React 16.8. They let you use state and other React features without writing a class.",
+        imageUrl: "https://reactjs.org/logo-og.png",
+        notes: "Core React concept",
         completed: true,
         dateAdded: formatDate(yesterday)
       },
       {
         id: 3,
-        title: "Introducing WebAssembly",
-        author: "Brian Sletten",
-        type: "article",
-        url: "https://example.com/webassembly-intro",
+        url: "https://css-tricks.com/snippets/css/a-guide-to-flexbox/",
+        title: "A Complete Guide to Flexbox",
+        siteName: "CSS-Tricks",
+        description: "Our comprehensive guide to CSS flexbox layout. This complete guide explains everything about flexbox, focusing on all the different possible properties for the parent element (the flex container) and the child elements (the flex items).",
+        imageUrl: "https://css-tricks.com/wp-content/uploads/2018/10/01-container-axes.svg",
         completed: false,
         dateAdded: formatDate(today)
       }

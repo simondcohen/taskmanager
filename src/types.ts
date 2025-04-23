@@ -27,7 +27,11 @@ export interface TodoItem {
 
 export interface ReadingItem {
   id: number;
+  url: string;
   title: string;
+  siteName: string;
+  description?: string;
+  imageUrl?: string;
   notes?: string;
   completed: boolean;
   dateAdded: string;
