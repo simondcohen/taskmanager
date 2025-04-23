@@ -346,9 +346,9 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setCategoryFilter(['all'])}
-                    className={`px-3 py-1 rounded-full text-sm ${categoryFilter.includes('all') 
+                    className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors ${categoryFilter.includes('all') 
                       ? 'bg-indigo-600 text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
                   >
                     All Categories
                   </button>
@@ -356,19 +356,25 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                     <button
                       key={category.name}
                       onClick={() => handleCategoryFilterChange(category.name)}
-                      className={`px-3 py-1 rounded-full text-sm flex items-center gap-1 ${
+                      className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-colors ${
                         categoryFilter.includes(category.name)
                           ? 'text-white' 
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
                       }`}
-                      style={categoryFilter.includes(category.name) ? { backgroundColor: category.color } : {}}
+                      style={categoryFilter.includes(category.name) 
+                        ? { backgroundColor: category.color } 
+                        : { borderLeftWidth: '4px', borderLeftColor: category.color }}
                     >
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0" 
+                        style={{ backgroundColor: category.color }}
+                      ></div>
                       {category.name}
                     </button>
                   ))}
                 </div>
                 {categories.length === 0 && (
-                  <p className="text-sm text-gray-500 mt-1">No categories available. Create categories below.</p>
+                  <p className="text-sm text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg">No categories available. Create categories below.</p>
                 )}
               </div>
             </div>
