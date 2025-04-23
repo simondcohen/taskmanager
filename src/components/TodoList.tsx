@@ -34,8 +34,20 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
 
   function parseLocalDate(dateStr: string) {
     if (!dateStr) return null;
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
+    try {
+      const [year, month, day] = dateStr.split('-').map(Number);
+      // Check if we have valid date components
+      if (!year || !month || !day || 
+          isNaN(year) || isNaN(month) || isNaN(day) || 
+          month < 1 || month > 12 || day < 1 || day > 31) {
+        console.error('Invalid date components:', { year, month, day });
+        return null;
+      }
+      return new Date(year, month - 1, day, 0, 0, 0, 0);
+    } catch (err) {
+      console.error('Error parsing date:', dateStr, err);
+      return null;
+    }
   }
 
   function formatTimeDisplay(timeStr: string) {
@@ -56,6 +68,7 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
   }
 
   function isPastDeadline(todo: TodoItem) {
+    if (!todo.deadline) return false;
     const today = getTodayAtMidnight();
     const deadlineDate = parseLocalDate(todo.deadline);
     if (!deadlineDate) return false;
@@ -63,6 +76,7 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
   }
 
   function isDueToday(todo: TodoItem) {
+    if (!todo.deadline) return false;
     const today = getTodayAtMidnight();
     const deadlineDate = parseLocalDate(todo.deadline);
     if (!deadlineDate) return false;
@@ -75,6 +89,7 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
   }
 
   function getDaysUntilDeadline(todo: TodoItem) {
+    if (!todo.deadline) return null;
     const today = getTodayAtMidnight();
     const deadlineDate = parseLocalDate(todo.deadline);
     if (!deadlineDate) return null;
@@ -90,39 +105,62 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
     if (todoSortOption === 'deadline') {
       const dateA = parseLocalDate(a.deadline);
       const dateB = parseLocalDate(b.deadline);
-      if (!dateA || !dateB) return 0;
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1; // Null dates go to the end
+      if (!dateB) return -1;
       return dateA.getTime() - dateB.getTime();
     }
     if (todoSortOption === 'deadline-reverse') {
       const dateA = parseLocalDate(a.deadline);
       const dateB = parseLocalDate(b.deadline);
-      if (!dateA || !dateB) return 0;
+      if (!dateA && !dateB) return 0;
+      if (!dateA) return 1; // Null dates go to the end
+      if (!dateB) return -1;
       return dateB.getTime() - dateA.getTime();
     }
     if (todoSortOption === 'alphabetical') {
       return a.text.localeCompare(b.text);
     }
-    return a.id - b.id; // 'added' sort option
+    return b.id - a.id; // 'added' sort option, most recent first
   });
 
   function addTodo() {
-    if (!newTodoText.trim() || !newTodoDeadline) {
-      alert('Description and deadline required.');
+    if (!newTodoText.trim()) {
+      alert('Description is required.');
       return;
     }
+    
+    if (!newTodoDeadline) {
+      alert('Deadline is required.');
+      return;
+    }
+    
+    try {
+      // Validate deadline format
+      const deadlineDate = parseLocalDate(newTodoDeadline);
+      if (!deadlineDate) {
+        alert('Invalid date format. Please use YYYY-MM-DD.');
+        return;
+      }
+      
+      const newTodo: TodoItem = {
+        id: Date.now(),
+        text: newTodoText.trim(),
+        deadline: newTodoDeadline,
+        time: newTodoTime || null,
+        completed: false,
+        dateAdded: getCurrentDate()
+      };
 
-    const newTodo: TodoItem = {
-      id: Date.now(),
-      text: newTodoText.trim(),
-      deadline: newTodoDeadline,
-      time: newTodoTime || null,
-      completed: false,
-      dateAdded: getCurrentDate()
-    };
-
-    onUpdateTodos([...todos, newTodo]);
-    setNewTodoText('');
-    setNewTodoTime('');
+      onUpdateTodos([...todos, newTodo]);
+      setNewTodoText('');
+      setNewTodoTime('');
+      // Keep the deadline at today's date for convenience
+      setNewTodoDeadline(getCurrentDate());
+    } catch (err) {
+      console.error('Error adding todo:', err);
+      alert('Failed to add todo. Please try again.');
+    }
   }
 
   return (
@@ -207,13 +245,18 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
                             return;
                           }
                           const newTodos = [...todos];
-                          newTodos[index] = {
-                            ...todo,
-                            text: editText.trim(),
-                            deadline: editDeadline,
-                            time: editTime || null
-                          };
-                          onUpdateTodos(newTodos);
+                          const originalIndex = newTodos.findIndex(t => t.id === todo.id);
+                          if (originalIndex !== -1) {
+                            newTodos[originalIndex] = {
+                              ...todo,
+                              text: editText.trim(),
+                              deadline: editDeadline,
+                              time: editTime || null
+                            };
+                            onUpdateTodos(newTodos);
+                          } else {
+                            console.error('Could not find todo with ID:', todo.id);
+                          }
                           setEditIndex(-1);
                         }}
                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -236,11 +279,16 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
                         checked={todo.completed}
                         onChange={() => {
                           const newTodos = [...todos];
-                          newTodos[index] = {
-                            ...todo,
-                            completed: !todo.completed
-                          };
-                          onUpdateTodos(newTodos);
+                          const originalIndex = newTodos.findIndex(t => t.id === todo.id);
+                          if (originalIndex !== -1) {
+                            newTodos[originalIndex] = {
+                              ...todo,
+                              completed: !todo.completed
+                            };
+                            onUpdateTodos(newTodos);
+                          } else {
+                            console.error('Could not find todo with ID:', todo.id);
+                          }
                         }}
                         className="w-5 h-5 rounded border-gray-300 text-indigo-600"
                       />
@@ -261,10 +309,10 @@ export function TodoList({ todos, onUpdateTodos }: TodoListProps) {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setEditIndex(index);
                           setEditText(todo.text);
                           setEditDeadline(todo.deadline);
                           setEditTime(todo.time || '');
+                          setEditIndex(index);
                         }}
                         className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                       >
