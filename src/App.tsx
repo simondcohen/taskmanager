@@ -584,11 +584,33 @@ function App() {
                 entertainmentItems={entertainmentItems}
                 videoItems={videoItems}
                 podcastItems={podcastItems}
+                deadlines={deadlines}
                 selectedDay={selectedDay}
                 onImportData={data => {
+                  if (data.todos) {
+                    setTodos(prev => {
+                      const map = new Map(prev.map(t => [t.id, { ...t }]));
+                      data.todos.forEach(nt => {
+                        if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
+                        else map.set(nt.id, nt);
+                      });
+                      return Array.from(map.values());
+                    });
+                  }
+
+                  if (data.deadlines) {
+                    setDeadlines(prev => {
+                      const map = new Map(prev.map(d => [d.id, { ...d }]));
+                      (data.deadlines || []).forEach((nd: DeadlineItem) => {
+                        if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
+                        else map.set(nd.id, nd);
+                      });
+                      return Array.from(map.values());
+                    });
+                  }
+
                   if (data.templateTasks) setTemplateTasks(data.templateTasks);
                   if (data.checklists) setChecklists(data.checklists);
-                  if (data.todos) setTodos(data.todos);
                 }}
                 onResetApp={() => {
                   if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {

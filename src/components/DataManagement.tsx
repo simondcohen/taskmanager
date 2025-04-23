@@ -14,7 +14,7 @@ interface DataManagementProps {
   podcastItems: PodcastItem[];
   deadlines?: DeadlineItem[];
   selectedDay: string;
-  onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[] }) => void;
+  onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[]; deadlines?: DeadlineItem[] }) => void;
   onResetApp?: () => void;
   onLoadDemo?: () => void;
   onClearDemo?: () => void;
@@ -40,10 +40,9 @@ export function DataManagement({
   isShowingDemo
 }: DataManagementProps) {
   const [exportMessage, setExportMessage] = useState('');
-  const [showImportModal, setShowImportModal] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
-  const [importSuccess, setImportSuccess] = useState('');
 
   const downloadData = () => {
     const dataToExport = {
@@ -128,6 +127,24 @@ export function DataManagement({
 
     return true;
   };
+  
+  const handleImportText = () => {
+    setImportError('');
+    try {
+      const parsed = JSON.parse(importText);
+      
+      if (validateImportData(parsed)) {
+        onImportData(parsed);
+        setIsImportModalOpen(false);
+        setImportText('');
+      } else {
+        setImportError('JSON schema not recognised');
+      }
+    } catch (err) {
+      setImportError('Invalid JSON');
+      console.error('Import Error:', err);
+    }
+  };
 
   const copyToClipboard = async (text: string, successMessage: string) => {
     try {
@@ -185,6 +202,12 @@ export function DataManagement({
                   onChange={handleFileUpload}
                 />
               </label>
+              <button
+                onClick={() => setIsImportModalOpen(true)}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Paste JSON
+              </button>
             </div>
           </div>
           {exportMessage && (
@@ -194,6 +217,58 @@ export function DataManagement({
           )}
         </div>
       </div>
+
+      {/* Import JSON Modal */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-lg">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium">Import JSON Data</h3>
+              <button 
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportText('');
+                  setImportError('');
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              className="w-full border rounded p-2 mb-4"
+              rows={10}
+              placeholder="Paste your JSON here..."
+            />
+            
+            {importError && (
+              <div className="mb-4 text-red-500">{importError}</div>
+            )}
+            
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportText('');
+                  setImportError('');
+                }}
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleImportText}
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Demo Data and Reset Section */}
       {(onResetApp || onLoadDemo || onClearDemo) && (
