@@ -93,36 +93,20 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
   };
 
   const addItem = async () => {
-    if (!newUrl.trim()) {
-      setError('Article URL is required');
-      return;
-    }
-
-    if (!newTitle.trim()) {
-      setError('Title is required');
+    if (!newUrl.trim() && !newTitle.trim()) {
+      setError('Please enter either an article URL or title');
       return;
     }
 
     try {
-      // If no metadata has been fetched yet, fetch it now
-      if (newUrl && newTitle.trim() === '') {
-        setIsLoading(true);
-        const metadata = await fetchArticleMeta(newUrl);
-        const combinedTitle = metadata.siteName && metadata.title !== metadata.siteName 
-          ? `${metadata.title} - ${metadata.siteName}` 
-          : metadata.title;
-        setNewTitle(combinedTitle);
-        setIsLoading(false);
-      }
-
       const newItem: ReadingItem = {
         id: Date.now(),
-        url: newUrl.trim(),
+        url: newUrl.trim() ? newUrl.trim() : undefined,
         title: newTitle.trim(),
-        siteName: '', // We're not using this field separately anymore
-        description: '', // We're not using this field separately anymore
-        imageUrl: '',
-        notes: newNotes.trim() || undefined,
+        siteName: undefined,
+        description: undefined,
+        imageUrl: undefined,
+        notes: newNotes.trim() ? newNotes.trim() : undefined,
         completed: false,
         dateAdded: getCurrentDate()
       };
@@ -185,14 +169,22 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
               >
                 {editIndex === index ? (
                   <div className="space-y-2">
-                    <input
-                      type="text"
-                      value={editUrl}
-                      onChange={(e) => setEditUrl(e.target.value)}
-                      onBlur={() => handleUrlChange(editUrl, true)}
-                      placeholder="Article URL"
-                      className="w-full p-2 border rounded"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editUrl}
+                        onChange={(e) => setEditUrl(e.target.value)}
+                        placeholder="Article URL"
+                        className="flex-grow p-2 border rounded"
+                      />
+                      <button
+                        onClick={() => handleUrlChange(editUrl, true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        disabled={isLoading || !editUrl}
+                      >
+                        Fetch
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={editTitle}
@@ -210,12 +202,8 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                     <div className="flex gap-2">
                       <button
                         onClick={async () => {
-                          if (!editUrl.trim()) {
-                            setError('Article URL is required');
-                            return;
-                          }
-                          if (!editTitle.trim()) {
-                            setError('Title is required');
+                          if (!editUrl.trim() && !editTitle.trim()) {
+                            setError('Please enter either an article URL or title');
                             return;
                           }
 
@@ -223,9 +211,9 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                             const newItems = [...items];
                             newItems[index] = {
                               ...item,
-                              url: editUrl.trim(),
+                              url: editUrl.trim() ? editUrl.trim() : undefined,
                               title: editTitle.trim(),
-                              notes: editNotes.trim() || undefined
+                              notes: editNotes.trim() ? editNotes.trim() : undefined
                             };
                             onUpdateItems(newItems);
                             setEditIndex(-1);
@@ -254,7 +242,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                 ) : (
                   <div className="flex gap-3">
                     <div className="h-10 w-10 flex-shrink-0 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center">
-                      <Link size={18} />
+                      {item.url ? <Link size={18} /> : <Book size={18} />}
                     </div>
                     <div className="flex-grow">
                       <div className="flex items-center justify-between">
@@ -274,15 +262,19 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                           />
                           <div className={item.completed ? 'line-through text-gray-400' : ''}>
                             <div className="font-medium flex items-center gap-1">
-                              <a 
-                                href={item.url} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="hover:text-indigo-600"
-                              >
-                                {item.title}
-                              </a>
-                              <ExternalLink size={14} className="text-gray-400" />
+                              {item.url ? (
+                                <a 
+                                  href={item.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="hover:text-indigo-600"
+                                >
+                                  {item.title}
+                                </a>
+                              ) : (
+                                <span>{item.title}</span>
+                              )}
+                              {item.url && item.url.trim() !== '' && <ExternalLink size={14} className="text-gray-400" />}
                             </div>
                             {item.notes && (
                               <div className="text-sm italic text-gray-600 mt-1">
@@ -295,7 +287,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                           <button
                             onClick={() => {
                               setEditIndex(index);
-                              setEditUrl(item.url);
+                              setEditUrl(item.url || '');
                               setEditTitle(item.title);
                               setEditNotes(item.notes || '');
                             }}
@@ -340,7 +332,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                   type="text"
                   value={newUrl}
                   onChange={(e) => setNewUrl(e.target.value)}
-                  onBlur={() => handleUrlChange(newUrl)}
                   placeholder="https://example.com/article"
                   className="flex-grow p-2 border rounded"
                 />
@@ -384,7 +375,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
           </div>
           <button
             onClick={addItem}
-            disabled={isLoading || !newUrl.trim() || !newTitle.trim()}
+            disabled={isLoading || (!newUrl.trim() && !newTitle.trim())}
             className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
           >
             {isLoading ? 'Loading...' : 'Add to Articles'}

@@ -399,7 +399,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                   className={`
                     p-4 rounded-lg border transition-all
                     ${isPastDeadline(todo) && !todo.completed ? 'border-l-4 border-l-red-500' : ''}
-                    ${isUrgent(todo) && !todo.completed ? 'border-l-4 border-l-orange-500' : ''}
+                    ${isUrgent(todo) && !todo.completed ? 'border-l-4 border-l-yellow-400' : ''}
                     ${isDueToday(todo) && !todo.completed ? 'border-l-4 border-l-blue-500' : ''}
                     ${todo.category ? 'border-t-4' : ''}
                   `}

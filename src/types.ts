@@ -28,9 +28,9 @@ export interface TodoItem {
 
 export interface ReadingItem {
   id: number;
-  url: string;
+  url?: string;
   title: string;
-  siteName: string;
+  siteName?: string;
   description?: string;
   imageUrl?: string;
   notes?: string;
