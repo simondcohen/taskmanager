@@ -30,7 +30,7 @@ const tabGroups = [
     tabs: [
       { id: 'grocery', label: 'Grocery List', icon: Apple },
       { id: 'shopping', label: 'Shopping List', icon: ShoppingBag },
-      { id: 'reading', label: 'Reading List', icon: Book },
+      { id: 'reading', label: 'Articles', icon: Book },
       { id: 'entertainment', label: 'Movies & TV', icon: Film },
       { id: 'videos', label: 'Videos', icon: Video },
       { id: 'podcasts', label: 'Podcasts', icon: Headphones },

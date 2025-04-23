@@ -15,16 +15,12 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
 
   const [newUrl, setNewUrl] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [newSiteName, setNewSiteName] = useState('');
-  const [newDescription, setNewDescription] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const [editUrl, setEditUrl] = useState('');
   const [editTitle, setEditTitle] = useState('');
-  const [editSiteName, setEditSiteName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
   const [editNotes, setEditNotes] = useState('');
 
   // On component mount, migrate any existing data
@@ -76,13 +72,17 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
       const metadata = await fetchArticleMeta(url);
       
       if (isEdit) {
-        setEditTitle(metadata.title);
-        setEditSiteName(metadata.siteName);
-        setEditDescription(metadata.description || '');
+        // Combine title and site name if both exist
+        const combinedTitle = metadata.siteName && metadata.title !== metadata.siteName 
+          ? `${metadata.title} - ${metadata.siteName}` 
+          : metadata.title;
+        setEditTitle(combinedTitle);
       } else {
-        setNewTitle(metadata.title);
-        setNewSiteName(metadata.siteName);
-        setNewDescription(metadata.description || '');
+        // Combine title and site name if both exist
+        const combinedTitle = metadata.siteName && metadata.title !== metadata.siteName 
+          ? `${metadata.title} - ${metadata.siteName}` 
+          : metadata.title;
+        setNewTitle(combinedTitle);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch article metadata');
@@ -105,12 +105,13 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
 
     try {
       // If no metadata has been fetched yet, fetch it now
-      if (newUrl && !newSiteName) {
+      if (newUrl && newTitle.trim() === '') {
         setIsLoading(true);
         const metadata = await fetchArticleMeta(newUrl);
-        setNewTitle(metadata.title);
-        setNewSiteName(metadata.siteName);
-        setNewDescription(metadata.description || '');
+        const combinedTitle = metadata.siteName && metadata.title !== metadata.siteName 
+          ? `${metadata.title} - ${metadata.siteName}` 
+          : metadata.title;
+        setNewTitle(combinedTitle);
         setIsLoading(false);
       }
 
@@ -118,8 +119,8 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
         id: Date.now(),
         url: newUrl.trim(),
         title: newTitle.trim(),
-        siteName: newSiteName,
-        description: newDescription || undefined,
+        siteName: '', // We're not using this field separately anymore
+        description: '', // We're not using this field separately anymore
         imageUrl: '',
         notes: newNotes.trim() || undefined,
         completed: false,
@@ -129,8 +130,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
       onUpdateItems([...items, newItem]);
       setNewUrl('');
       setNewTitle('');
-      setNewSiteName('');
-      setNewDescription('');
       setNewNotes('');
       setError('');
     } catch (err) {
@@ -141,7 +140,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
 
   return (
     <section className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-indigo-700 mb-6">Reading List</h2>
+      <h2 className="text-xl font-semibold text-indigo-700 mb-6">Articles</h2>
 
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
@@ -175,7 +174,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
       <div className="space-y-4">
         {filteredItems.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
-            No reading items to display. Add new items below.
+            No articles to display. Add new items below.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -200,20 +199,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                       onChange={(e) => setEditTitle(e.target.value)}
                       placeholder="Title"
                       className="w-full p-2 border rounded"
-                    />
-                    <input
-                      type="text"
-                      value={editSiteName}
-                      onChange={(e) => setEditSiteName(e.target.value)}
-                      placeholder="Site Name"
-                      className="w-full p-2 border rounded"
-                    />
-                    <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      placeholder="Description (optional)"
-                      className="w-full p-2 border rounded"
-                      rows={2}
                     />
                     <textarea
                       value={editNotes}
@@ -240,16 +225,13 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                               ...item,
                               url: editUrl.trim(),
                               title: editTitle.trim(),
-                              siteName: editSiteName,
-                              description: editDescription || undefined,
-                              imageUrl: '',
                               notes: editNotes.trim() || undefined
                             };
                             onUpdateItems(newItems);
                             setEditIndex(-1);
                             setError('');
                           } catch (err) {
-                            setError(err instanceof Error ? err.message : 'Failed to update reading item');
+                            setError(err instanceof Error ? err.message : 'Failed to update article');
                           }
                         }}
                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -302,15 +284,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                               </a>
                               <ExternalLink size={14} className="text-gray-400" />
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {item.siteName}
-                              {item.description && (
-                                <span className="ml-2 text-gray-400">•</span>
-                              )}
-                              {item.description && (
-                                <span className="ml-2">{item.description}</span>
-                              )}
-                            </div>
                             {item.notes && (
                               <div className="text-sm italic text-gray-600 mt-1">
                                 {item.notes}
@@ -324,8 +297,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                               setEditIndex(index);
                               setEditUrl(item.url);
                               setEditTitle(item.title);
-                              setEditSiteName(item.siteName);
-                              setEditDescription(item.description || '');
                               setEditNotes(item.notes || '');
                             }}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
@@ -334,7 +305,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                           </button>
                           <button
                             onClick={() => {
-                              if (confirm(`Remove "${item.title}" from reading list?`)) {
+                              if (confirm(`Remove "${item.title}" from articles?`)) {
                                 onUpdateItems(items.filter(i => i.id !== item.id));
                               }
                             }}
@@ -353,7 +324,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
         )}
 
         <div className="mt-6 space-y-4 border-t pt-6">
-          <h3 className="font-medium text-gray-900">Add New Reading Item</h3>
+          <h3 className="font-medium text-gray-900">Add New Article</h3>
           {error && (
             <div className="p-3 bg-red-50 text-red-700 rounded border border-red-200">
               {error}
@@ -399,34 +370,6 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Site Name
-              </label>
-              <input
-                type="text"
-                value={newSiteName}
-                onChange={(e) => setNewSiteName(e.target.value)}
-                placeholder="Site name (e.g., Medium, The New York Times)"
-                className="w-full p-2 border rounded"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (optional)
-              </label>
-              <textarea
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-                placeholder="Article description"
-                className="w-full p-2 border rounded"
-                rows={2}
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Notes (optional)
               </label>
               <textarea
@@ -444,7 +387,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
             disabled={isLoading || !newUrl.trim() || !newTitle.trim()}
             className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
           >
-            {isLoading ? 'Loading...' : 'Add to Reading List'}
+            {isLoading ? 'Loading...' : 'Add to Articles'}
           </button>
         </div>
       </div>
