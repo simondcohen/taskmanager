@@ -12,9 +12,9 @@ export const dateUtils = {
   },
 
   addDays: (date: Date, days: number): Date => {
-    const newDate = new Date(date);
-    newDate.setDate(newDate.getDate() + days);
-    return newDate;
+    const result = new Date(date);
+    result.setDate(date.getDate() + days);
+    return result;
   },
 
   isSameDay: (date1: Date, date2: Date): boolean => {
@@ -45,5 +45,16 @@ export const dateUtils = {
       month: 'short',
       year: 'numeric'
     });
+  },
+
+  // New utility function for formatting datetime for input fields
+  formatDateTimeForInput: (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 };

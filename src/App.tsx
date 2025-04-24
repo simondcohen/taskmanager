@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, NavLink } from 'react-router-dom';
 import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote, Headphones } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { DailyNotes } from './components/DailyNotes';
@@ -11,6 +12,7 @@ import { ShoppingList } from './components/ShoppingList';
 import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
+import CalendarView from './pages/CalendarView';
 import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem, DeadlineItem } from './types';
 import { Category } from './components/CategoryManager';
 
@@ -23,6 +25,7 @@ const tabGroups = [
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
       { id: 'notes', label: 'Daily Notes', icon: StickyNote },
+      { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
   },
   {
@@ -506,135 +509,141 @@ function App() {
         </header>
 
         <main>
-          {/* Main content area */}
-          <div className={`flex-grow p-4 md:p-8 overflow-auto ${isCompactView ? 'max-h-screen' : ''}`}>
-            {activeTab === 'daily' && (
-              <DailyChecklist
-                templateTasks={templateTasks}
-                checklists={checklists}
-                selectedDay={selectedDay}
-                onUpdateChecklists={setChecklists}
-                onUpdateTemplate={setTemplateTasks}
-                onSelectDay={setSelectedDay}
-              />
-            )}
-            {activeTab === 'notes' && (
-              <DailyNotes
-                notes={notes}
-                selectedDay={selectedDay}
-                onUpdateNotes={setNotes}
-                onSelectDay={setSelectedDay}
-              />
-            )}
-            {activeTab === 'todos' && (
-              <TodoList 
-                todos={todos} 
-                onUpdateTodos={setTodos} 
-                categories={todoCategories}
-                onUpdateCategories={setTodoCategories}
-              />
-            )}
-            {activeTab === 'grocery' && (
-              <GroceryList
-                items={groceryItems}
-                onUpdateItems={setGroceryItems}
-              />
-            )}
-            {activeTab === 'shopping' && (
-              <ShoppingList
-                items={shoppingItems}
-                onUpdateItems={setShoppingItems}
-              />
-            )}
-            {activeTab === 'reading' && (
-              <ReadingList
-                items={readingItems}
-                onUpdateItems={setReadingItems}
-              />
-            )}
-            {activeTab === 'entertainment' && (
-              <EntertainmentList
-                items={entertainmentItems}
-                onUpdateItems={setEntertainmentItems}
-              />
-            )}
-            {activeTab === 'videos' && (
-              <VideoList
-                items={videoItems}
-                onUpdateItems={setVideoItems}
-              />
-            )}
-            {activeTab === 'podcasts' && (
-              <PodcastList
-                items={podcastItems}
-                onUpdateItems={setPodcastItems}
-              />
-            )}
-            {activeTab === 'deadlines' && (
-              <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
-            )}
-            {activeTab === 'data' && (
-              <DataManagement
-                templateTasks={templateTasks}
-                checklists={checklists}
-                todos={todos}
-                groceryItems={groceryItems}
-                shoppingItems={shoppingItems}
-                readingItems={readingItems}
-                entertainmentItems={entertainmentItems}
-                videoItems={videoItems}
-                podcastItems={podcastItems}
-                deadlines={deadlines}
-                selectedDay={selectedDay}
-                onImportData={data => {
-                  if (data.todos) {
-                    setTodos(prev => {
-                      const map = new Map(prev.map(t => [t.id, { ...t }]));
-                      data.todos.forEach(nt => {
-                        if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
-                        else map.set(nt.id, nt);
-                      });
-                      return Array.from(map.values());
-                    });
-                  }
+          <Routes>
+            <Route path="/" element={
+              <div className={`flex-grow p-4 md:p-8 overflow-auto ${isCompactView ? 'max-h-screen' : ''}`}>
+                {activeTab === 'daily' && (
+                  <DailyChecklist
+                    templateTasks={templateTasks}
+                    checklists={checklists}
+                    selectedDay={selectedDay}
+                    onUpdateChecklists={setChecklists}
+                    onUpdateTemplate={setTemplateTasks}
+                    onSelectDay={setSelectedDay}
+                  />
+                )}
+                {activeTab === 'notes' && (
+                  <DailyNotes
+                    notes={notes}
+                    selectedDay={selectedDay}
+                    onUpdateNotes={setNotes}
+                    onSelectDay={setSelectedDay}
+                  />
+                )}
+                {activeTab === 'todos' && (
+                  <TodoList 
+                    todos={todos} 
+                    onUpdateTodos={setTodos} 
+                    categories={todoCategories}
+                    onUpdateCategories={setTodoCategories}
+                  />
+                )}
+                {activeTab === 'calendar' && (
+                  <CalendarView />
+                )}
+                {activeTab === 'grocery' && (
+                  <GroceryList
+                    items={groceryItems}
+                    onUpdateItems={setGroceryItems}
+                  />
+                )}
+                {activeTab === 'shopping' && (
+                  <ShoppingList
+                    items={shoppingItems}
+                    onUpdateItems={setShoppingItems}
+                  />
+                )}
+                {activeTab === 'reading' && (
+                  <ReadingList
+                    items={readingItems}
+                    onUpdateItems={setReadingItems}
+                  />
+                )}
+                {activeTab === 'entertainment' && (
+                  <EntertainmentList
+                    items={entertainmentItems}
+                    onUpdateItems={setEntertainmentItems}
+                  />
+                )}
+                {activeTab === 'videos' && (
+                  <VideoList
+                    items={videoItems}
+                    onUpdateItems={setVideoItems}
+                  />
+                )}
+                {activeTab === 'podcasts' && (
+                  <PodcastList
+                    items={podcastItems}
+                    onUpdateItems={setPodcastItems}
+                  />
+                )}
+                {activeTab === 'deadlines' && (
+                  <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
+                )}
+                {activeTab === 'data' && (
+                  <DataManagement
+                    templateTasks={templateTasks}
+                    checklists={checklists}
+                    todos={todos}
+                    groceryItems={groceryItems}
+                    shoppingItems={shoppingItems}
+                    readingItems={readingItems}
+                    entertainmentItems={entertainmentItems}
+                    videoItems={videoItems}
+                    podcastItems={podcastItems}
+                    deadlines={deadlines}
+                    selectedDay={selectedDay}
+                    onImportData={data => {
+                      if (data.todos) {
+                        setTodos(prev => {
+                          const map = new Map(prev.map(t => [t.id, { ...t }]));
+                          data.todos.forEach(nt => {
+                            if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
+                            else map.set(nt.id, nt);
+                          });
+                          return Array.from(map.values());
+                        });
+                      }
 
-                  if (data.deadlines) {
-                    setDeadlines(prev => {
-                      const map = new Map(prev.map(d => [d.id, { ...d }]));
-                      (data.deadlines || []).forEach((nd: DeadlineItem) => {
-                        if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
-                        else map.set(nd.id, nd);
-                      });
-                      return Array.from(map.values());
-                    });
-                  }
+                      if (data.deadlines) {
+                        setDeadlines(prev => {
+                          const map = new Map(prev.map(d => [d.id, { ...d }]));
+                          (data.deadlines || []).forEach((nd: DeadlineItem) => {
+                            if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
+                            else map.set(nd.id, nd);
+                          });
+                          return Array.from(map.values());
+                        });
+                      }
 
-                  if (data.templateTasks) setTemplateTasks(data.templateTasks);
-                  if (data.checklists) setChecklists(data.checklists);
-                }}
-                onResetApp={() => {
-                  if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
-                    setTemplateTasks([]);
-                    setChecklists({});
-                    setNotes({});
-                    setTodos([]);
-                    setTodoCategories([]);
-                    setReadingItems([]);
-                    setEntertainmentItems([]);
-                    setVideoItems([]);
-                    setShoppingItems([]);
-                    setGroceryItems([]);
-                    setPodcastItems([]);
-                    setDeadlines([]);
-                    localStorage.removeItem('react-task-manager-app');
-                  }
-                }}
-                isShowingDemo={isShowingDemo}
-                onLoadDemo={() => setIsShowingDemo(true)}
-                onClearDemo={() => setIsShowingDemo(false)}
-              />
-            )}
-          </div>
+                      if (data.templateTasks) setTemplateTasks(data.templateTasks);
+                      if (data.checklists) setChecklists(data.checklists);
+                    }}
+                    onResetApp={() => {
+                      if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+                        setTemplateTasks([]);
+                        setChecklists({});
+                        setNotes({});
+                        setTodos([]);
+                        setTodoCategories([]);
+                        setReadingItems([]);
+                        setEntertainmentItems([]);
+                        setVideoItems([]);
+                        setShoppingItems([]);
+                        setGroceryItems([]);
+                        setPodcastItems([]);
+                        setDeadlines([]);
+                        localStorage.removeItem('react-task-manager-app');
+                      }
+                    }}
+                    isShowingDemo={isShowingDemo}
+                    onLoadDemo={() => setIsShowingDemo(true)}
+                    onClearDemo={() => setIsShowingDemo(false)}
+                  />
+                )}
+              </div>
+            } />
+          </Routes>
         </main>
       </div>
     </div>

@@ -96,7 +96,7 @@ export interface DeadlineItem {
   completed?: boolean;
 }
 
-export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines';
+export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar';
 
 export interface CalendarDay {
   day: number;
@@ -113,4 +113,13 @@ export interface DateUtils {
   addDays: (date: Date, days: number) => Date;
   isSameDay: (date1: Date, date2: Date) => boolean;
   isToday: (date: Date) => boolean;
+}
+
+export interface EventItem {
+  id?: string; // assigned when saved
+  title: string;
+  start_ts: string; // ISO 8601 string
+  end_ts: string; // ISO 8601 string
+  notes?: string;
+  recurrence?: string; // '' or 'weekly:MO,TU'
 }

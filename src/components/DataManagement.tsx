@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem } from '../types';
 import { X } from 'lucide-react';
+import { listEvents } from '../storage/eventStore';
 
 interface DataManagementProps {
   templateTasks: Task[];
@@ -158,14 +159,50 @@ export function DataManagement({
   };
 
   const exportCurrentTasks = () => {
+    // Get current date
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+    
+    // Get incomplete tasks
+    const incompleteTasks = todos.filter(todo => !todo.completed);
+
+    // Get calendar events
+    const calendarEvents = listEvents();
+
+    // Process events to include only future events and handle recurring ones efficiently
+    const futureEvents = calendarEvents
+      .map(event => {
+        const eventStartDate = new Date(event.start_ts);
+        // For non-recurring events, just check if they're in the future
+        if (!event.recurrence) {
+          return eventStartDate >= now ? event : null;
+        } 
+        
+        // For recurring events, format them efficiently
+        if (event.recurrence?.startsWith('weekly:')) {
+          const weekdays = event.recurrence.slice(7).split(',');
+          return {
+            ...event,
+            recurrence_details: {
+              frequency: 'weekly',
+              byweekday: weekdays
+            }
+          };
+        }
+        
+        return event;
+      })
+      .filter(Boolean); // Remove null values (past non-recurring events)
+
     const data = {
       exportedAt: new Date().toISOString(),
-      tasks: todos.filter(todo => !todo.completed)
+      tasks: incompleteTasks,
+      calendar_events: futureEvents
     };
 
     copyToClipboard(
       JSON.stringify(data, null, 2),
-      "Current tasks copied to clipboard!"
+      "Current tasks and future calendar events copied to clipboard!"
     );
   };
 
@@ -182,7 +219,7 @@ export function DataManagement({
                 onClick={exportCurrentTasks}
                 className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
-                Export Current Tasks
+                Export Tasks & Calendar
               </button>
             </div>
 
