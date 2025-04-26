@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Edit2, X, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, X, Save, MessageSquare } from 'lucide-react';
 import { Task, CalendarDay } from '../types';
 import { dateUtils } from '../utils/dateUtils';
 import { ChecklistCalendar } from './checklist/ChecklistCalendar';
@@ -28,6 +28,8 @@ export function DailyChecklist({
   const [newTaskText, setNewTaskText] = useState('');
   const [editIndex, setEditIndex] = useState(-1);
   const [editText, setEditText] = useState('');
+  const [noteIndex, setNoteIndex] = useState(-1);
+  const [noteText, setNoteText] = useState('');
 
   // This is now the master list of recurring tasks
   const masterTasks = templateTasks;
@@ -123,7 +125,7 @@ export function DailyChecklist({
     Object.keys(updatedChecklists).forEach(date => {
       updatedChecklists[date] = updatedChecklists[date].map(task => 
         task.text === oldText 
-          ? { ...task, text: editText.trim() }
+          ? { ...task, text: editText.trim(), notes: task.notes }
           : task
       );
     });
@@ -154,6 +156,27 @@ export function DailyChecklist({
       ...checklists,
       [dateString]: currentTasks
     });
+  };
+
+  const editTaskNote = (index: number) => {
+    setNoteIndex(index);
+    setNoteText(checklists[selectedDay][index].notes || '');
+  };
+
+  const saveTaskNote = (index: number) => {
+    const currentTasks = [...checklists[selectedDay]];
+    currentTasks[index] = {
+      ...currentTasks[index],
+      notes: noteText.trim() || undefined
+    };
+    
+    onUpdateChecklists({
+      ...checklists,
+      [selectedDay]: currentTasks
+    });
+    
+    setNoteIndex(-1);
+    setNoteText('');
   };
 
   const navigateMonth = (direction: number) => {
@@ -310,7 +333,7 @@ export function DailyChecklist({
               {checklists[selectedDay].map((task, index) => (
                 <li
                   key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                  className="flex flex-col p-3 bg-gray-50 rounded border border-gray-200"
                 >
                   {editIndex === index ? (
                     <div className="flex-1 flex gap-2">
@@ -337,51 +360,98 @@ export function DailyChecklist({
                         Cancel
                       </button>
                     </div>
+                  ) : noteIndex === index ? (
+                    <div className="flex-1 flex flex-col gap-2">
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        className="w-full p-2 border rounded"
+                        rows={3}
+                        placeholder="Add a note for this day's habit..."
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => saveTaskNote(index)}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                          Save Note
+                        </button>
+                        <button
+                          onClick={() => {
+                            setNoteIndex(-1);
+                            setNoteText('');
+                          }}
+                          className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <>
-                      <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                        {task.text}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex space-x-1">
-                          <button
-                            onClick={() => toggleTaskStatus(selectedDay, index, 'completed')}
-                            className={`w-8 h-8 flex items-center justify-center rounded-full ${
-                              task.completed
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                            }`}
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => toggleTaskStatus(selectedDay, index, 'notCompleted')}
-                            className={`w-8 h-8 flex items-center justify-center rounded-full ${
-                              task.notCompleted
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                            }`}
-                          >
-                            ✗
-                          </button>
-                        </div>
-                        <div className="flex space-x-1 ml-2 border-l pl-2">
-                          <button
-                            onClick={() => editMasterTask(index)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                            title="Edit habit (changes apply to all days)"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => removeMasterTask(index)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                            title="Remove habit (removes from all days)"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                      <div className="flex items-center justify-between">
+                        <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                          {task.text}
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => toggleTaskStatus(selectedDay, index, 'completed')}
+                              className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                                task.completed
+                                  ? 'bg-green-500 text-white'
+                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                              }`}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => toggleTaskStatus(selectedDay, index, 'notCompleted')}
+                              className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                                task.notCompleted
+                                  ? 'bg-red-500 text-white'
+                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                              }`}
+                            >
+                              ✗
+                            </button>
+                          </div>
+                          <div className="flex space-x-1 ml-2 border-l pl-2">
+                            <button
+                              onClick={() => editTaskNote(index)}
+                              className={`p-1 ${task.notes ? 'text-green-600' : 'text-gray-500'} hover:bg-blue-50 rounded`}
+                              title="Add note for today's habit"
+                            >
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => editMasterTask(index)}
+                              className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                              title="Edit habit (changes apply to all days)"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => removeMasterTask(index)}
+                              className="p-1 text-red-600 hover:bg-red-50 rounded"
+                              title="Remove habit (removes from all days)"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
+                      
+                      {task.notes && (
+                        <div 
+                          className="mt-2 pt-2 border-t text-gray-600 text-sm"
+                          onClick={() => editTaskNote(index)}
+                        >
+                          <div className="bg-gray-100 p-2 rounded">
+                            {task.notes}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </li>
