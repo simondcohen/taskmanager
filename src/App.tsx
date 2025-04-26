@@ -21,7 +21,7 @@ const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
-      { id: 'daily', label: 'Daily Checklists', icon: CheckSquare },
+      { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
       { id: 'notes', label: 'Daily Notes', icon: StickyNote },

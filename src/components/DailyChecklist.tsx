@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Edit2, X, Save } from 'lucide-react';
 import { Task, CalendarDay } from '../types';
 import { dateUtils } from '../utils/dateUtils';
-import { ChecklistTemplate } from './checklist/ChecklistTemplate';
 import { ChecklistCalendar } from './checklist/ChecklistCalendar';
-import { ChecklistItem } from './checklist/ChecklistItem';
 import { ChecklistProgress } from './checklist/ChecklistProgress';
 
 interface DailyChecklistProps {
@@ -27,7 +25,12 @@ export function DailyChecklist({
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
-  const [newDailyTaskText, setNewDailyTaskText] = useState('');
+  const [newTaskText, setNewTaskText] = useState('');
+  const [editIndex, setEditIndex] = useState(-1);
+  const [editText, setEditText] = useState('');
+
+  // This is now the master list of recurring tasks
+  const masterTasks = templateTasks;
 
   const isFutureDate = (date: Date) => {
     const today = new Date();
@@ -36,44 +39,121 @@ export function DailyChecklist({
     return date > today;
   };
 
+  const ensureChecklistForDate = (dateString: string) => {
+    if (!checklists[dateString]) {
+      // Create a new checklist for this date using the master tasks
+      const newChecklist = masterTasks.map((task) => ({
+        text: task.text,
+        completed: false,
+        notCompleted: false
+      }));
+      
+      onUpdateChecklists({
+        ...checklists,
+        [dateString]: newChecklist,
+      });
+    }
+  };
+
   const generateChecklistForToday = () => {
     const today = dateUtils.formatDate(new Date());
-    const newChecklist = templateTasks.map((task) => ({
-      text: task.text,
-      completed: false,
-      notCompleted: false
-    }));
-    
-    onUpdateChecklists({
-      ...checklists,
-      [today]: newChecklist,
-    });
-    
+    ensureChecklistForDate(today);
     onSelectDay(today);
   };
 
-  const addToTemplate = (taskText: string) => {
-    if (!taskText.trim()) return;
-    if (templateTasks.some(t => t.text === taskText)) {
-      alert('This task already exists in the template.');
+  const addMasterTask = () => {
+    if (!newTaskText.trim()) return;
+    if (masterTasks.some(t => t.text === newTaskText.trim())) {
+      alert('This task already exists in your recurring tasks.');
       return;
     }
-    onUpdateTemplate([...templateTasks, { text: taskText }]);
+    
+    // Add to master list
+    const newMasterTasks = [...masterTasks, { text: newTaskText.trim() }];
+    onUpdateTemplate(newMasterTasks);
+    
+    // Add to all existing checklists with default values
+    const updatedChecklists = { ...checklists };
+    Object.keys(updatedChecklists).forEach(date => {
+      updatedChecklists[date] = [
+        ...updatedChecklists[date],
+        { text: newTaskText.trim(), completed: false, notCompleted: false }
+      ];
+    });
+    
+    onUpdateChecklists(updatedChecklists);
+    setNewTaskText('');
   };
 
-  const addDailyTask = () => {
-    if (!newDailyTaskText.trim() || !selectedDay) return;
-    const currentTasks = checklists[selectedDay] || [];
-    const newTask: Task = {
-      text: newDailyTaskText.trim(),
-      completed: false,
-      notCompleted: false
-    };
+  const removeMasterTask = (index: number) => {
+    const taskText = checklists[selectedDay][index].text;
+    
+    // Remove from master list
+    const newMasterTasks = masterTasks.filter(task => task.text !== taskText);
+    onUpdateTemplate(newMasterTasks);
+    
+    // Remove from all checklists
+    const updatedChecklists = { ...checklists };
+    Object.keys(updatedChecklists).forEach(date => {
+      updatedChecklists[date] = updatedChecklists[date].filter(
+        task => task.text !== taskText
+      );
+    });
+    
+    onUpdateChecklists(updatedChecklists);
+  };
+
+  const editMasterTask = (index: number) => {
+    setEditIndex(index);
+    setEditText(checklists[selectedDay][index].text);
+  };
+
+  const saveMasterTaskEdit = (index: number) => {
+    if (!editText.trim()) return;
+    const oldText = checklists[selectedDay][index].text;
+    
+    // Update in master list
+    const newMasterTasks = masterTasks.map(task => 
+      task.text === oldText ? { text: editText.trim() } : task
+    );
+    onUpdateTemplate(newMasterTasks);
+    
+    // Update in all checklists
+    const updatedChecklists = { ...checklists };
+    Object.keys(updatedChecklists).forEach(date => {
+      updatedChecklists[date] = updatedChecklists[date].map(task => 
+        task.text === oldText 
+          ? { ...task, text: editText.trim() }
+          : task
+      );
+    });
+    
+    onUpdateChecklists(updatedChecklists);
+    setEditIndex(-1);
+    setEditText('');
+  };
+
+  const toggleTaskStatus = (dateString: string, index: number, status: 'completed' | 'notCompleted') => {
+    const currentTasks = [...checklists[dateString]];
+    
+    if (status === 'completed') {
+      currentTasks[index] = { 
+        ...currentTasks[index], 
+        completed: !currentTasks[index].completed,
+        notCompleted: false 
+      };
+    } else {
+      currentTasks[index] = { 
+        ...currentTasks[index], 
+        notCompleted: !currentTasks[index].notCompleted,
+        completed: false 
+      };
+    }
+    
     onUpdateChecklists({
       ...checklists,
-      [selectedDay]: [...currentTasks, newTask]
+      [dateString]: currentTasks
     });
-    setNewDailyTaskText('');
   };
 
   const navigateMonth = (direction: number) => {
@@ -150,12 +230,7 @@ export function DailyChecklist({
       return;
     }
 
-    if (!checklists[day.date]) {
-      onUpdateChecklists({
-        ...checklists,
-        [day.date]: templateTasks.map(t => ({ text: t.text, completed: false, notCompleted: false }))
-      });
-    }
+    ensureChecklistForDate(day.date);
     onSelectDay(day.date);
     setShowCalendar(false);
   };
@@ -175,36 +250,20 @@ export function DailyChecklist({
     }
 
     const newDateStr = dateUtils.formatDate(newDate);
-
-    onUpdateChecklists(prev => {
-      const updatedChecklists = { ...prev };
-      if (!updatedChecklists[newDateStr]) {
-        updatedChecklists[newDateStr] = templateTasks.map(t => ({
-          text: t.text,
-          completed: false,
-          notCompleted: false
-        }));
-      }
-      onSelectDay(newDateStr);
-      return updatedChecklists;
-    });
+    ensureChecklistForDate(newDateStr);
+    onSelectDay(newDateStr);
   };
 
   return (
     <div className="space-y-6">
-      <ChecklistTemplate
-        templateTasks={templateTasks}
-        onUpdateTemplate={onUpdateTemplate}
-      />
-
       <section className="bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-indigo-700">Daily Checklist</h2>
+          <h2 className="text-xl font-semibold text-indigo-700">Daily Habits</h2>
           <button
             onClick={generateChecklistForToday}
             className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
           >
-            Generate Today's Checklist
+            Go to Today
           </button>
         </div>
 
@@ -247,43 +306,98 @@ export function DailyChecklist({
 
         {selectedDay && checklists[selectedDay] ? (
           <>
-            <ul className="space-y-2">
+            <ul className="space-y-2 mt-4">
               {checklists[selectedDay].map((task, index) => (
-                <ChecklistItem
+                <li
                   key={index}
-                  task={task}
-                  index={index}
-                  onSave={(index, updatedTask) => {
-                    const newTasks = [...checklists[selectedDay]];
-                    newTasks[index] = updatedTask;
-                    onUpdateChecklists({
-                      ...checklists,
-                      [selectedDay]: newTasks,
-                    });
-                  }}
-                  onDelete={(index) => {
-                    const newTasks = checklists[selectedDay].filter((_, i) => i !== index);
-                    onUpdateChecklists({
-                      ...checklists,
-                      [selectedDay]: newTasks,
-                    });
-                  }}
-                  onAddToTemplate={addToTemplate}
-                />
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200"
+                >
+                  {editIndex === index ? (
+                    <div className="flex-1 flex gap-2">
+                      <input
+                        type="text"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        className="flex-1 p-2 border rounded"
+                        onKeyDown={(e) => e.key === 'Enter' && saveMasterTaskEdit(index)}
+                      />
+                      <button
+                        onClick={() => saveMasterTaskEdit(index)}
+                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                      >
+                        <Save className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditIndex(-1);
+                          setEditText('');
+                        }}
+                        className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                        {task.text}
+                      </span>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          <button
+                            onClick={() => toggleTaskStatus(selectedDay, index, 'completed')}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              task.completed
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                            }`}
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => toggleTaskStatus(selectedDay, index, 'notCompleted')}
+                            className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              task.notCompleted
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                            }`}
+                          >
+                            ✗
+                          </button>
+                        </div>
+                        <div className="flex space-x-1 ml-2 border-l pl-2">
+                          <button
+                            onClick={() => editMasterTask(index)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            title="Edit habit (changes apply to all days)"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => removeMasterTask(index)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            title="Remove habit (removes from all days)"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </li>
               ))}
             </ul>
-
             <div className="mt-4 flex gap-2">
               <input
                 type="text"
-                value={newDailyTaskText}
-                onChange={(e) => setNewDailyTaskText(e.target.value)}
-                placeholder="Add a new task to today's checklist"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                placeholder="Add a new habit"
                 className="flex-1 p-2 border rounded"
-                onKeyDown={(e) => e.key === 'Enter' && addDailyTask()}
+                onKeyDown={(e) => e.key === 'Enter' && addMasterTask()}
               />
               <button
-                onClick={addDailyTask}
+                onClick={addMasterTask}
                 className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
               >
                 <Plus className="w-5 h-5" />
@@ -292,7 +406,7 @@ export function DailyChecklist({
           </>
         ) : (
           <p className="text-center text-gray-500 py-8">
-            No day selected. Pick a day or generate today's checklist.
+            No day selected. Pick a day or go to today.
           </p>
         )}
       </section>
