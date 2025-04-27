@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem } from '../types';
+import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem, MedicationItem } from '../types';
 import { X } from 'lucide-react';
 import { listEvents } from '../storage/eventStore';
 
@@ -14,8 +14,9 @@ interface DataManagementProps {
   videoItems: VideoItem[];
   podcastItems: PodcastItem[];
   deadlines?: DeadlineItem[];
+  medicationItems: MedicationItem[];
   selectedDay: string;
-  onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[]; deadlines?: DeadlineItem[] }) => void;
+  onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[]; deadlines?: DeadlineItem[]; medicationItems?: MedicationItem[] }) => void;
   onResetApp?: () => void;
   onLoadDemo?: () => void;
   onClearDemo?: () => void;
@@ -33,6 +34,7 @@ export function DataManagement({
   videoItems,
   podcastItems,
   deadlines,
+  medicationItems,
   selectedDay,
   onImportData,
   onResetApp,
@@ -56,7 +58,8 @@ export function DataManagement({
       entertainmentItems,
       videoItems,
       podcastItems,
-      deadlines: deadlines || []
+      deadlines: deadlines || [],
+      medicationItems
     };
     const jsonString = JSON.stringify(dataToExport, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });

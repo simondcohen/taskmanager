@@ -88,6 +88,16 @@ export interface GroceryItem {
   dateAdded: string;
 }
 
+export interface MedicationItem {
+  id: number;
+  name: string;
+  dose: number;
+  date: string;
+  time: string;
+  notes?: string;
+  timestamp: string; // ISO string for sorting
+}
+
 export interface DeadlineItem { 
   id: string; 
   title: string; 
@@ -96,7 +106,7 @@ export interface DeadlineItem {
   completed?: boolean;
 }
 
-export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar';
+export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications';
 
 export interface CalendarDay {
   day: number;

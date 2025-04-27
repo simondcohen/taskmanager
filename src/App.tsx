@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
-import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote, Headphones } from 'lucide-react';
+import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote, Headphones, Pill } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { DailyNotes } from './components/DailyNotes';
 import { TodoList } from './components/TodoList';
@@ -12,8 +12,9 @@ import { ShoppingList } from './components/ShoppingList';
 import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
+import { MedicationList } from './components/MedicationList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem, DeadlineItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem, DeadlineItem, MedicationItem } from './types';
 import { Category } from './components/CategoryManager';
 
 // Group tabs by category
@@ -25,6 +26,7 @@ const tabGroups = [
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
       { id: 'notes', label: 'Daily Notes', icon: StickyNote },
+      { id: 'medications', label: 'Medications', icon: Pill },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
   },
@@ -366,6 +368,10 @@ function App() {
   const [podcastItems, setPodcastItems] = useState<PodcastItem[]>([]);
   const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
   const [selectedDay, setSelectedDay] = useState(formatDate(new Date()));
+  const [medicationItems, setMedicationItems] = useState<MedicationItem[]>(() => {
+    const savedItems = localStorage.getItem('medicationItems');
+    return savedItems ? JSON.parse(savedItems) : [];
+  });
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -455,6 +461,11 @@ function App() {
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
   }, [isShowingDemo, templateTasks, checklists, notes, todos, todoCategories, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+
+  // Save medication items to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('medicationItems', JSON.stringify(medicationItems));
+  }, [medicationItems]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -580,6 +591,12 @@ function App() {
                 {activeTab === 'deadlines' && (
                   <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
                 )}
+                {activeTab === 'medications' && (
+                  <MedicationList
+                    items={medicationItems}
+                    onUpdateItems={setMedicationItems}
+                  />
+                )}
                 {activeTab === 'data' && (
                   <DataManagement
                     templateTasks={templateTasks}
@@ -592,6 +609,7 @@ function App() {
                     videoItems={videoItems}
                     podcastItems={podcastItems}
                     deadlines={deadlines}
+                    medicationItems={medicationItems}
                     selectedDay={selectedDay}
                     onImportData={data => {
                       if (data.todos) {
@@ -618,6 +636,10 @@ function App() {
 
                       if (data.templateTasks) setTemplateTasks(data.templateTasks);
                       if (data.checklists) setChecklists(data.checklists);
+
+                      if (data.medicationItems) {
+                        setMedicationItems(data.medicationItems);
+                      }
                     }}
                     onResetApp={() => {
                       if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
@@ -633,7 +655,9 @@ function App() {
                         setGroceryItems([]);
                         setPodcastItems([]);
                         setDeadlines([]);
+                        setMedicationItems([]);
                         localStorage.removeItem('react-task-manager-app');
+                        localStorage.removeItem('medications');
                       }
                     }}
                     isShowingDemo={isShowingDemo}
@@ -643,6 +667,15 @@ function App() {
                 )}
               </div>
             } />
+            <Route 
+              path="/medications" 
+              element={
+                <MedicationList 
+                  items={medicationItems}
+                  onUpdateItems={setMedicationItems}
+                />
+              } 
+            />
           </Routes>
         </main>
       </div>
