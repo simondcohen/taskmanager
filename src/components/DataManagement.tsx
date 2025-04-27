@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem, MedicationItem } from '../types';
 import { X } from 'lucide-react';
 import { listEvents } from '../storage/eventStore';
+import { Category } from './CategoryManager';
 
 interface DataManagementProps {
   templateTasks: Task[];
@@ -16,7 +17,20 @@ interface DataManagementProps {
   deadlines?: DeadlineItem[];
   medicationItems: MedicationItem[];
   selectedDay: string;
-  onImportData: (data: { templateTasks: Task[]; checklists: { [date: string]: Task[] }; todos: TodoItem[]; deadlines?: DeadlineItem[]; medicationItems?: MedicationItem[] }) => void;
+  onImportData: (data: { 
+    templateTasks: Task[]; 
+    checklists: { [date: string]: Task[] }; 
+    todos: TodoItem[]; 
+    deadlines?: DeadlineItem[]; 
+    medicationItems?: MedicationItem[];
+    readingItems?: ReadingItem[];
+    entertainmentItems?: EntertainmentItem[];
+    videoItems?: VideoItem[];
+    shoppingItems?: ShoppingItem[];
+    groceryItems?: GroceryItem[];
+    podcastItems?: PodcastItem[];
+    todoCategories?: Category[];
+  }) => void;
   onResetApp?: () => void;
   onLoadDemo?: () => void;
   onClearDemo?: () => void;

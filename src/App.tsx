@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
-import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, StickyNote, Headphones, Pill } from 'lucide-react';
+import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
-import { DailyNotes } from './components/DailyNotes';
 import { TodoList } from './components/TodoList';
 import { DataManagement } from './components/DataManagement';
 import { ReadingList } from './components/ReadingList';
@@ -14,7 +13,7 @@ import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, DailyNote, PodcastItem, DeadlineItem, MedicationItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem } from './types';
 import { Category } from './components/CategoryManager';
 
 // Group tabs by category
@@ -25,7 +24,6 @@ const tabGroups = [
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
-      { id: 'notes', label: 'Daily Notes', icon: StickyNote },
       { id: 'medications', label: 'Medications', icon: Pill },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
@@ -114,27 +112,6 @@ function App() {
         { text: "Evening reflection and planning", completed: false }
       ]
     },
-    notes: {
-      [formatDate(yesterday)]: [
-        {
-          id: 1,
-          content: "Had a productive meeting with the design team. Key decisions made about the new UI components.",
-          createdAt: new Date(yesterday).toISOString()
-        }
-      ],
-      [formatDate(today)]: [
-        {
-          id: 2,
-          content: "Remember to follow up with John about the project timeline.",
-          createdAt: new Date(today).toISOString()
-        },
-        {
-          id: 3,
-          content: "Ideas for the upcoming presentation:\n- Focus on Q1 results\n- Highlight team achievements\n- Discuss future roadmap",
-          createdAt: new Date(today).toISOString()
-        }
-      ]
-    },
     todos: [
       {
         id: 1,
@@ -146,7 +123,7 @@ function App() {
         category: "Work"
       },
       {
-        id: 2,
+        id:.2,
         text: "Schedule team building event",
         deadline: formatDate(new Date(today.setDate(today.getDate() + 5))),
         time: null,
@@ -208,33 +185,17 @@ function App() {
     readingItems: [
       {
         id: 1,
-        url: "https://medium.com/javascript-scene/master-the-javascript-interview-what-is-functional-programming-7f218c68b3a0",
-        title: "Master the JavaScript Interview: What is Functional Programming?",
-        siteName: "Medium",
-        description: "Functional programming has become a really important discussion lately with the rise of libraries that encourage functional techniques.",
-        imageUrl: "https://miro.medium.com/max/1200/1*qzaV7fHQYktynJ3aBEBIrg.jpeg",
-        notes: "Important concepts for modern JavaScript",
+        title: "The Future of Web Development",
+        siteName: "TechCrunch",
+        description: "Exploring trends in web development for the next decade.",
         completed: false,
         dateAdded: formatDate(yesterday)
       },
       {
         id: 2,
-        url: "https://reactjs.org/docs/hooks-intro.html",
-        title: "Introducing Hooks",
-        siteName: "React",
-        description: "Hooks are a new addition in React 16.8. They let you use state and other React features without writing a class.",
-        imageUrl: "https://reactjs.org/logo-og.png",
-        notes: "Core React concept",
-        completed: true,
-        dateAdded: formatDate(yesterday)
-      },
-      {
-        id: 3,
-        url: "https://css-tricks.com/snippets/css/a-guide-to-flexbox/",
-        title: "A Complete Guide to Flexbox",
-        siteName: "CSS-Tricks",
-        description: "Our comprehensive guide to CSS flexbox layout. This complete guide explains everything about flexbox, focusing on all the different possible properties for the parent element (the flex container) and the child elements (the flex items).",
-        imageUrl: "https://css-tricks.com/wp-content/uploads/2018/10/01-container-axes.svg",
+        title: "Mastering React Hooks",
+        siteName: "React Documentation",
+        description: "A comprehensive guide to React hooks and their use cases.",
         completed: false,
         dateAdded: formatDate(today)
       }
@@ -242,43 +203,35 @@ function App() {
     entertainmentItems: [
       {
         id: 1,
-        title: "The Social Dilemma",
-        type: "movie",
-        platform: "Netflix",
-        duration: "1h 34m",
-        notes: "Documentary about social media",
-        completed: true,
-        dateAdded: formatDate(yesterday)
+        title: "The Matrix Resurrections",
+        notes: "New release in theaters",
+        completed: false,
+        dateAdded: formatDate(today)
       },
       {
         id: 2,
-        title: "Mr. Robot",
-        type: "series",
-        platform: "Prime Video",
-        duration: "4 seasons",
-        notes: "Cybersecurity thriller",
+        title: "Squid Game",
+        notes: "Netflix series",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(yesterday)
       }
     ],
     videoItems: [
       {
         id: 1,
         url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        title: "Rick Astley - Never Gonna Give You Up (Official Music Video)",
-        thumbnailUrl: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-        notes: "Classic music video",
+        title: "Advanced TypeScript Patterns",
+        thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
         completed: false,
         dateAdded: formatDate(today)
       },
       {
         id: 2,
-        url: "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-        title: "Me at the zoo",
-        thumbnailUrl: "https://img.youtube.com/vi/jNQXAC9IVRw/hqdefault.jpg",
-        notes: "First video on YouTube",
+        url: "https://www.youtube.com/watch?v=LXb3EKWsInQ",
+        title: "React Performance Optimization",
+        thumbnailUrl: "https://i.ytimg.com/vi/LXb3EKWsInQ/hqdefault.jpg",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(yesterday)
       }
     ],
     shoppingItems: [
@@ -357,7 +310,6 @@ function App() {
 
   const [templateTasks, setTemplateTasks] = useState<Task[]>([]);
   const [checklists, setChecklists] = useState<DailyChecklists>({});
-  const [notes, setNotes] = useState<{ [date: string]: DailyNote[] }>({});
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [todoCategories, setTodoCategories] = useState<Category[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
@@ -387,7 +339,6 @@ function App() {
           const parsedData = JSON.parse(storedData);
           setTemplateTasks(parsedData.templateTasks || []);
           setChecklists(parsedData.checklists || {});
-          setNotes(parsedData.notes || {});
           setTodos(parsedData.todos || []);
           setTodoCategories(parsedData.todoCategories || []);
           setReadingItems(parsedData.readingItems || []);
@@ -400,7 +351,6 @@ function App() {
         } else {
           setTemplateTasks([]);
           setChecklists({});
-          setNotes({});
           setTodos([]);
           setTodoCategories([]);
           setReadingItems([]);
@@ -415,7 +365,6 @@ function App() {
         console.error('Error loading data:', err);
         setTemplateTasks([]);
         setChecklists({});
-        setNotes({});
         setTodos([]);
         setTodoCategories([]);
         setReadingItems([]);
@@ -429,7 +378,6 @@ function App() {
     } else {
       setTemplateTasks(demoData.templateTasks);
       setChecklists(demoData.checklists);
-      setNotes(demoData.notes);
       setTodos(demoData.todos);
       setTodoCategories(demoData.todoCategories || []);
       setReadingItems(demoData.readingItems);
@@ -447,7 +395,6 @@ function App() {
       const dataToSave = {
         templateTasks,
         checklists,
-        notes,
         todos,
         todoCategories,
         readingItems,
@@ -460,7 +407,7 @@ function App() {
       };
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
-  }, [isShowingDemo, templateTasks, checklists, notes, todos, todoCategories, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+  }, [isShowingDemo, templateTasks, checklists, todos, todoCategories, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
 
   // Save medication items to localStorage when they change
   useEffect(() => {
@@ -530,14 +477,6 @@ function App() {
                     selectedDay={selectedDay}
                     onUpdateChecklists={setChecklists}
                     onUpdateTemplate={setTemplateTasks}
-                    onSelectDay={setSelectedDay}
-                  />
-                )}
-                {activeTab === 'notes' && (
-                  <DailyNotes
-                    notes={notes}
-                    selectedDay={selectedDay}
-                    onUpdateNotes={setNotes}
                     onSelectDay={setSelectedDay}
                   />
                 )}
@@ -636,16 +575,19 @@ function App() {
 
                       if (data.templateTasks) setTemplateTasks(data.templateTasks);
                       if (data.checklists) setChecklists(data.checklists);
-
-                      if (data.medicationItems) {
-                        setMedicationItems(data.medicationItems);
-                      }
+                      if (data.medicationItems) setMedicationItems(data.medicationItems);
+                      if (data.readingItems) setReadingItems(data.readingItems);
+                      if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
+                      if (data.videoItems) setVideoItems(data.videoItems);
+                      if (data.shoppingItems) setShoppingItems(data.shoppingItems);
+                      if (data.groceryItems) setGroceryItems(data.groceryItems);
+                      if (data.podcastItems) setPodcastItems(data.podcastItems);
+                      if (data.todoCategories) setTodoCategories(data.todoCategories);
                     }}
                     onResetApp={() => {
                       if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
                         setTemplateTasks([]);
                         setChecklists({});
-                        setNotes({});
                         setTodos([]);
                         setTodoCategories([]);
                         setReadingItems([]);

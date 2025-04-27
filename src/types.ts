@@ -10,12 +10,6 @@ export interface DailyChecklists {
   [date: string]: Task[];
 }
 
-export interface DailyNote {
-  id: number;
-  content: string;
-  createdAt: string;
-}
-
 export interface TodoItem {
   id: number;
   text: string;
@@ -106,7 +100,7 @@ export interface DeadlineItem {
   completed?: boolean;
 }
 
-export type Tab = 'daily' | 'notes' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications';
+export type Tab = 'daily' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications';
 
 export interface CalendarDay {
   day: number;
