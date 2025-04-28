@@ -65,7 +65,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
 
   // Get the last dose for each medication
   const lastDoses = medications.reduce((acc: {[key: string]: MedicationItem | null}, medication) => {
-    const medicationLogs = items.filter(item => item.name === medication);
+    const medicationLogs = items.filter(item => item.name === medication && item.date === getTodayDate());
     if (medicationLogs.length) {
       const sorted = [...medicationLogs].sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -294,11 +294,11 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
                 <div className="text-sm text-gray-600">
                   <div className="flex items-center mt-1">
                     <Clock size={14} className="mr-1" />
-                    Last dose: {item.dose} on {formatDate(item.date)} at {formatTime(item.time)}
+                    Last dose: {item.dose} at {formatTime(item.time)}
                   </div>
                 </div>
               ) : (
-                <div className="text-sm text-gray-500">No doses recorded</div>
+                <div className="text-sm text-gray-500">No doses recorded today</div>
               )}
             </div>
           ))}
