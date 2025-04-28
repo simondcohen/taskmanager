@@ -76,11 +76,19 @@ export function DailyChecklist({
     
     // Add to all existing checklists with default values
     const updatedChecklists = { ...checklists };
+    
+    // Only update the selected day and future days
     Object.keys(updatedChecklists).forEach(date => {
-      updatedChecklists[date] = [
-        ...updatedChecklists[date],
-        { text: newTaskText.trim(), completed: false, notCompleted: false }
-      ];
+      const dateObj = dateUtils.parseDate(date);
+      const selectedDayObj = dateUtils.parseDate(selectedDay);
+      
+      // Only apply changes to selected day and future days
+      if (dateObj >= selectedDayObj) {
+        updatedChecklists[date] = [
+          ...updatedChecklists[date],
+          { text: newTaskText.trim(), completed: false, notCompleted: false }
+        ];
+      }
     });
     
     onUpdateChecklists(updatedChecklists);
@@ -97,9 +105,15 @@ export function DailyChecklist({
     // Remove from all checklists
     const updatedChecklists = { ...checklists };
     Object.keys(updatedChecklists).forEach(date => {
-      updatedChecklists[date] = updatedChecklists[date].filter(
-        task => task.text !== taskText
-      );
+      const dateObj = dateUtils.parseDate(date);
+      const selectedDayObj = dateUtils.parseDate(selectedDay);
+      
+      // Only apply changes to selected day and future days
+      if (dateObj >= selectedDayObj) {
+        updatedChecklists[date] = updatedChecklists[date].filter(
+          task => task.text !== taskText
+        );
+      }
     });
     
     onUpdateChecklists(updatedChecklists);
@@ -123,11 +137,17 @@ export function DailyChecklist({
     // Update in all checklists
     const updatedChecklists = { ...checklists };
     Object.keys(updatedChecklists).forEach(date => {
-      updatedChecklists[date] = updatedChecklists[date].map(task => 
-        task.text === oldText 
-          ? { ...task, text: editText.trim(), notes: task.notes }
-          : task
-      );
+      const dateObj = dateUtils.parseDate(date);
+      const selectedDayObj = dateUtils.parseDate(selectedDay);
+      
+      // Only apply changes to selected day and future days
+      if (dateObj >= selectedDayObj) {
+        updatedChecklists[date] = updatedChecklists[date].map(task => 
+          task.text === oldText 
+            ? { ...task, text: editText.trim(), notes: task.notes }
+            : task
+        );
+      }
     });
     
     onUpdateChecklists(updatedChecklists);
