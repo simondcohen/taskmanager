@@ -49,63 +49,66 @@ export function ChecklistCalendar({
   });
 
   return (
-    <div className="text-center">
+    <div className="text-center checklist-calendar-wrapper">
       <button
         onClick={() => setShowCalendar(!showCalendar)}
-        className="group relative inline-flex items-center gap-2 px-4 py-2 border rounded hover:bg-gray-50"
+        className="group relative inline-flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg hover:bg-gray-50 shadow-sm hover:shadow transition-all"
       >
-        <CalendarIcon className="w-5 h-5" />
+        <CalendarIcon className="w-5 h-5 text-indigo-600" />
         <span className="font-medium">
           {selectedDay
             ? formatDateDisplay(selectedDay)
             : 'Select Date'}
         </span>
         {dateUtils.isToday(dateUtils.parseDate(selectedDay)) && (
-          <span className="ml-2 text-sm bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+          <span className="ml-2 text-sm bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full">
             Today
           </span>
         )}
 
         {showCalendar && (
-          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 w-64 z-50">
+          <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white rounded-lg p-4 z-50 checklist-calendar-dropdown min-w-[280px]">
             <div className="flex justify-between items-center mb-4">
-              <button onClick={() => navigateMonth(-1)} className="p-1 hover:bg-gray-100 rounded">
+              <button onClick={(e) => { e.stopPropagation(); navigateMonth(-1); }} 
+                     className="p-2 hover:bg-gray-100 rounded-full text-gray-600 hover:text-gray-900 transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="font-semibold">{calendarMonthYear}</span>
-              <button onClick={() => navigateMonth(1)} className="p-1 hover:bg-gray-100 rounded">
+              <h3 className="font-semibold text-gray-900">{calendarMonthYear}</h3>
+              <button onClick={(e) => { e.stopPropagation(); navigateMonth(1); }} 
+                     className="p-2 hover:bg-gray-100 rounded-full text-gray-600 hover:text-gray-900 transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="grid grid-cols-7 gap-1 mb-2">
+            <div className="grid grid-cols-7 gap-1 mb-3">
               {weekdays.map(day => (
-                <div key={day} className="text-center text-sm font-medium text-gray-500">
+                <div key={day} className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wider pb-2">
                   {day}
                 </div>
               ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-0.5">
               {calendarDays.map((day, index) => {
                 const dayDate = dateUtils.parseDate(day.date);
                 const isFuture = isFutureDate(dayDate);
                 return (
-                  <button
-                    key={index}
-                    onClick={() => onSelectDay(day)}
-                    disabled={isFuture}
-                    className={`
-                      p-2 text-center rounded
-                      ${!day.currentMonth ? 'text-gray-400' : ''}
-                      ${day.isToday ? 'font-bold text-blue-600' : ''}
-                      ${day.isSelected ? 'bg-blue-100' : ''}
-                      ${day.hasChecklist ? 'border-b-2 border-blue-500' : ''}
-                      ${isFuture ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}
-                    `}
-                  >
-                    {day.day}
-                  </button>
+                  <div className="relative" key={index}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onSelectDay(day); }}
+                      disabled={isFuture}
+                      className={`
+                        checklist-calendar-day relative
+                        ${!day.currentMonth ? 'other-month' : ''}
+                        ${day.isToday ? 'today' : ''}
+                        ${day.isSelected ? 'selected' : ''}
+                        ${day.hasChecklist ? 'has-data' : ''}
+                        ${isFuture ? 'opacity-40 cursor-not-allowed' : ''}
+                      `}
+                    >
+                      {day.day}
+                    </button>
+                  </div>
                 );
               })}
             </div>

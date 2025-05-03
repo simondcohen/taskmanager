@@ -18,6 +18,11 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
   const [form, setForm] = useState<EventItem>(
     initial ?? { title: '', start_ts: '', end_ts: '', notes: '', recurrence: '' }
   );
+  
+  // Separate state for date, start time, and end time
+  const [eventDate, setEventDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
 
   // Update form when initial changes
   useEffect(() => {
@@ -32,10 +37,44 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
           dateUtils.formatDateTimeForInput(new Date(initial.end_ts))
       };
       setForm(formattedInitial);
+      
+      // Extract date and times from start_ts and end_ts
+      const startDate = new Date(formattedInitial.start_ts);
+      const endDate = new Date(formattedInitial.end_ts);
+      
+      // Set date to start date (YYYY-MM-DD)
+      setEventDate(formattedInitial.start_ts.split('T')[0]);
+      
+      // Set times (HH:MM)
+      setStartTime(startDate.toTimeString().substring(0, 5));
+      setEndTime(endDate.toTimeString().substring(0, 5));
     } else {
       setForm({ title: '', start_ts: '', end_ts: '', notes: '', recurrence: '' });
+      
+      // Set default date to today
+      const today = new Date();
+      setEventDate(today.toISOString().split('T')[0]);
+      
+      // Set default start time to next round hour
+      const nextHour = new Date();
+      nextHour.setHours(nextHour.getHours() + 1, 0, 0, 0);
+      setStartTime(nextHour.toTimeString().substring(0, 5));
+      
+      // Set default end time to 1 hour after start
+      const endHour = new Date(nextHour);
+      endHour.setHours(endHour.getHours() + 1);
+      setEndTime(endHour.toTimeString().substring(0, 5));
     }
   }, [initial]);
+
+  // Update the form when date or times change
+  useEffect(() => {
+    if (eventDate && startTime && endTime) {
+      const start_ts = `${eventDate}T${startTime}:00`;
+      const end_ts = `${eventDate}T${endTime}:00`;
+      setForm(prev => ({...prev, start_ts, end_ts}));
+    }
+  }, [eventDate, startTime, endTime]);
 
   const weekdays = [
     { code: 'MO', label: 'Mon' },
@@ -57,7 +96,7 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
     // Validate form
     if (!form.title || !form.start_ts || !form.end_ts) {
       // Simple validation
-      alert('Please fill out title, start time, and end time.');
+      alert('Please fill out title, date, and times.');
       return;
     }
     
@@ -77,10 +116,13 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
   const hasRecurrence = form.recurrence?.startsWith('weekly:');
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-full max-w-lg space-y-5 shadow-xl border border-gray-200">
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-xl w-full max-w-lg space-y-5 shadow-xl border border-gray-200 animate-in fade-in duration-150 slide-in-from-bottom-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">{initial?.id ? 'Edit Event' : 'New Event'}</h2>
+          <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <Calendar className="mr-2 h-5 w-5 text-indigo-600" />
+            {initial?.id ? 'Edit Event' : 'New Event'}
+          </h2>
           {initial?.id && onDelete && (
             <button 
               onClick={onDelete}
@@ -101,37 +143,51 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
             </label>
             <input 
               id="event-title"
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
               placeholder="Add title"  
               value={form.title} 
               onChange={e => setForm({ ...form, title: e.target.value })}
             />
           </div>
 
-          {/* Date/Time */}
+          {/* Date */}
+          <div className="space-y-1">
+            <label htmlFor="event-date" className="block text-sm font-medium text-gray-700 flex items-center">
+              <Calendar size={16} className="mr-1 text-indigo-600" /> Date*
+            </label>
+            <input 
+              id="event-date"
+              type="date" 
+              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
+              value={eventDate} 
+              onChange={e => setEventDate(e.target.value)}
+            />
+          </div>
+
+          {/* Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label htmlFor="event-start" className="block text-sm font-medium text-gray-700 flex items-center">
-                <Calendar size={16} className="mr-1" /> Start*
+              <label htmlFor="start-time" className="block text-sm font-medium text-gray-700 flex items-center">
+                <Clock size={16} className="mr-1 text-indigo-600" /> Start Time*
               </label>
               <input 
-                id="event-start"
-                type="datetime-local" 
-                className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                value={form.start_ts} 
-                onChange={e => setForm({ ...form, start_ts: e.target.value })}
+                id="start-time"
+                type="time" 
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
+                value={startTime} 
+                onChange={e => setStartTime(e.target.value)}
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="event-end" className="block text-sm font-medium text-gray-700 flex items-center">
-                <Clock size={16} className="mr-1" /> End*
+              <label htmlFor="end-time" className="block text-sm font-medium text-gray-700 flex items-center">
+                <Clock size={16} className="mr-1 text-indigo-600" /> End Time*
               </label>
               <input 
-                id="event-end"
-                type="datetime-local" 
-                className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-                value={form.end_ts} 
-                onChange={e => setForm({ ...form, end_ts: e.target.value })}
+                id="end-time"
+                type="time" 
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm"
+                value={endTime} 
+                onChange={e => setEndTime(e.target.value)}
               />
             </div>
           </div>
@@ -139,11 +195,11 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
           {/* Notes */}
           <div className="space-y-1">
             <label htmlFor="event-notes" className="block text-sm font-medium text-gray-700 flex items-center">
-              <ClipboardList size={16} className="mr-1" /> Notes
+              <ClipboardList size={16} className="mr-1 text-indigo-600" /> Notes
             </label>
             <textarea 
               id="event-notes"
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" 
+              className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all shadow-sm" 
               placeholder="Add notes about this event" 
               rows={3}  
               value={form.notes || ''} 
@@ -154,15 +210,15 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
           {/* Recurrence */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 flex items-center">
-              <RefreshCw size={16} className="mr-1" /> Repeat Weekly
+              <RefreshCw size={16} className="mr-1 text-indigo-600" /> Repeat Weekly
             </label>
             <div className="flex flex-wrap gap-2">
               {weekdays.map(({ code, label }) => (
                 <button 
                   key={code} 
-                  className={`px-3 py-2 rounded-md text-sm transition-all ${
+                  className={`px-3 py-2 rounded-md text-sm transition-all shadow-sm ${
                     form.recurrence?.includes(code) 
-                      ? 'bg-indigo-100 border border-indigo-300 text-indigo-700 font-medium' 
+                      ? 'bg-indigo-100 border border-indigo-300 text-indigo-700 font-medium ring-1 ring-indigo-200' 
                       : 'border border-gray-300 hover:bg-gray-50 text-gray-700'
                   }`}  
                   onClick={() => toggle(code)}
@@ -173,24 +229,25 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
               ))}
             </div>
             {hasRecurrence && (
-              <p className="text-sm text-indigo-600">
+              <p className="text-sm text-indigo-600 bg-indigo-50 p-2 rounded-md flex items-center">
+                <RefreshCw size={14} className="mr-1 inline" />
                 This event will repeat weekly on the selected days.
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2 border-t">
+        <div className="flex justify-end gap-3 pt-4 border-t mt-4">
           <button 
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
+            className="px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-gray-700 shadow-sm"
             type="button"
           >
             Cancel
           </button>
           <button 
             onClick={save} 
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow"
             type="button"
           >
             {initial?.id ? 'Update' : 'Create'}
