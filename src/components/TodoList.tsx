@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, X, Plus, Filter } from 'lucide-react';
+import { Edit2, X, Plus, Filter, Settings, Clock } from 'lucide-react';
 import { TodoItem } from '../types';
 import { CategoryManager, Category } from './CategoryManager';
 
@@ -24,6 +24,9 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const [editTime, setEditTime] = useState('');
   const [editCategory, setEditCategory] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [autoHideCompleted, setAutoHideCompleted] = useState(true);
+  const [hideAfterHours, setHideAfterHours] = useState(24);
 
   function getCurrentDate() {
     const d = new Date();
@@ -39,7 +42,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     return today;
   }
 
-  function parseLocalDate(dateStr: string) {
+  function parseLocalDate(dateStr: string | null) {
     if (!dateStr) return null;
     try {
       const [year, month, day] = dateStr.split('-').map(Number);
@@ -110,56 +113,77 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     return category ? category.color : '';
   };
 
-  const filteredTodos = todos.filter(todo => {
-    // First apply status filter
-    if (todoStatusFilter === 'active' && todo.completed) return false;
-    if (todoStatusFilter === 'completed' && !todo.completed) return false;
+  // Function to check if a completed todo should be hidden based on completion time
+  function shouldHideCompletedTodo(todo: TodoItem): boolean {
+    if (!todo.completed || !todo.completedAt || !autoHideCompleted) {
+      return false;
+    }
+
+    // We've validated completedAt is not null above
+    const completedTime = new Date(todo.completedAt).getTime();
+    const currentTime = new Date().getTime();
+    const hoursSinceCompletion = (currentTime - completedTime) / (1000 * 60 * 60);
     
-    // Then apply category filter if needed
-    if (!categoryFilter.includes('all') && todo.category && !categoryFilter.includes(todo.category)) return false;
-    
-    return true;
-  }).sort((a, b) => {
-    if (todoSortOption === 'category') {
-      // First sort by category
-      const catA = a.category || '';
-      const catB = b.category || '';
-      const catComparison = catA.localeCompare(catB);
+    return hoursSinceCompletion >= hideAfterHours;
+  }
+
+  const filteredTodos = todos
+    .filter(todo => {
+      // First check if completed todos should be hidden
+      if (shouldHideCompletedTodo(todo)) {
+        return false;
+      }
       
-      // If categories are the same, sort by deadline
-      if (catComparison === 0) {
+      // Then apply status filter
+      if (todoStatusFilter === 'active' && todo.completed) return false;
+      if (todoStatusFilter === 'completed' && !todo.completed) return false;
+      
+      // Then apply category filter if needed
+      if (!categoryFilter.includes('all') && todo.category && !categoryFilter.includes(todo.category)) return false;
+      
+      return true;
+    })
+    .sort((a, b) => {
+      if (todoSortOption === 'category') {
+        // First sort by category
+        const catA = a.category || '';
+        const catB = b.category || '';
+        const catComparison = catA.localeCompare(catB);
+        
+        // If categories are the same, sort by deadline
+        if (catComparison === 0) {
+          const dateA = parseLocalDate(a.deadline);
+          const dateB = parseLocalDate(b.deadline);
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return dateA.getTime() - dateB.getTime();
+        }
+        
+        return catComparison;
+      }
+      
+      if (todoSortOption === 'deadline') {
         const dateA = parseLocalDate(a.deadline);
         const dateB = parseLocalDate(b.deadline);
         if (!dateA && !dateB) return 0;
-        if (!dateA) return 1;
+        if (!dateA) return 1; // Null dates go to the end
         if (!dateB) return -1;
         return dateA.getTime() - dateB.getTime();
       }
-      
-      return catComparison;
-    }
-    
-    if (todoSortOption === 'deadline') {
-      const dateA = parseLocalDate(a.deadline);
-      const dateB = parseLocalDate(b.deadline);
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1; // Null dates go to the end
-      if (!dateB) return -1;
-      return dateA.getTime() - dateB.getTime();
-    }
-    if (todoSortOption === 'deadline-reverse') {
-      const dateA = parseLocalDate(a.deadline);
-      const dateB = parseLocalDate(b.deadline);
-      if (!dateA && !dateB) return 0;
-      if (!dateA) return 1; // Null dates go to the end
-      if (!dateB) return -1;
-      return dateB.getTime() - dateA.getTime();
-    }
-    if (todoSortOption === 'alphabetical') {
-      return a.text.localeCompare(b.text);
-    }
-    return b.id - a.id; // 'added' sort option, most recent first
-  });
+      if (todoSortOption === 'deadline-reverse') {
+        const dateA = parseLocalDate(a.deadline);
+        const dateB = parseLocalDate(b.deadline);
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1; // Null dates go to the end
+        if (!dateB) return -1;
+        return dateB.getTime() - dateA.getTime();
+      }
+      if (todoSortOption === 'alphabetical') {
+        return a.text.localeCompare(b.text);
+      }
+      return b.id - a.id; // 'added' sort option, most recent first
+    });
 
   function addTodo() {
     if (!newTodoText.trim()) {
@@ -173,6 +197,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       deadline: newTodoDeadline || null,
       time: newTodoTime || null,
       completed: false,
+      completedAt: null,
       dateAdded: new Date().toISOString(),
       category: newTodoCategory || undefined
     };
@@ -230,6 +255,24 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       setCategoryFilter([...newFilter, categoryName]);
     }
   };
+
+  // Add this function to handle toggling completion status
+  function toggleTaskCompletion(todo: TodoItem) {
+    const newTodos = [...todos];
+    const originalIndex = newTodos.findIndex(t => t.id === todo.id);
+    
+    if (originalIndex !== -1) {
+      const nowCompleted = !todo.completed;
+      newTodos[originalIndex] = {
+        ...todo,
+        completed: nowCompleted,
+        completedAt: nowCompleted ? new Date().toISOString() : null
+      };
+      onUpdateTodos(newTodos);
+    } else {
+      console.error('Could not find todo with ID:', todo.id);
+    }
+  }
 
   return (
     <section className="bg-white rounded-lg shadow p-6">
@@ -302,13 +345,23 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       
       {/* Filters Section - Collapsible */}
       <div className="mb-6">
-        <button 
-          onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 text-indigo-600 font-medium mb-2 hover:text-indigo-800"
-        >
-          <Filter className="w-4 h-4" />
-          {showFilters ? 'Hide Filters' : 'Show Filters'}
-        </button>
+        <div className="flex justify-between items-center">
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 text-indigo-600 font-medium mb-2 hover:text-indigo-800"
+          >
+            <Filter className="w-4 h-4" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
+          
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-2 text-indigo-600 font-medium mb-2 hover:text-indigo-800"
+          >
+            <Settings className="w-4 h-4" />
+            {showSettings ? 'Hide Settings' : 'Settings'}
+          </button>
+        </div>
         
         {showFilters && (
           <div className="bg-gray-50 p-4 rounded-lg transition-all">
@@ -378,6 +431,47 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                 )}
               </div>
             </div>
+          </div>
+        )}
+        
+        {showSettings && (
+          <div className="bg-gray-50 p-4 rounded-lg transition-all mt-2">
+            <h3 className="font-medium text-gray-700 mb-3">Auto-Hide Settings</h3>
+            <div className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                id="autoHideCompleted"
+                checked={autoHideCompleted}
+                onChange={(e) => setAutoHideCompleted(e.target.checked)}
+                className="mr-2 h-4 w-4"
+              />
+              <label htmlFor="autoHideCompleted" className="text-gray-700">
+                Automatically hide completed tasks
+              </label>
+            </div>
+            
+            {autoHideCompleted && (
+              <div className="ml-6 flex items-center">
+                <Clock className="w-4 h-4 text-gray-500 mr-2" />
+                <label htmlFor="hideAfterHours" className="text-gray-700 mr-2">
+                  Hide after:
+                </label>
+                <input
+                  type="number"
+                  id="hideAfterHours"
+                  min="1"
+                  value={hideAfterHours}
+                  onChange={(e) => setHideAfterHours(Math.max(1, parseInt(e.target.value) || 24))}
+                  className="w-16 p-1 border border-gray-300 rounded mr-2"
+                />
+                <span className="text-gray-700">hours</span>
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 mt-2">
+              Completed tasks will automatically disappear after the specified time period.
+              You can still view them by selecting "Completed Only" in the filters.
+            </p>
           </div>
         )}
       </div>
@@ -463,19 +557,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                         <input
                           type="checkbox"
                           checked={todo.completed}
-                          onChange={() => {
-                            const newTodos = [...todos];
-                            const originalIndex = newTodos.findIndex(t => t.id === todo.id);
-                            if (originalIndex !== -1) {
-                              newTodos[originalIndex] = {
-                                ...todo,
-                                completed: !todo.completed
-                              };
-                              onUpdateTodos(newTodos);
-                            } else {
-                              console.error('Could not find todo with ID:', todo.id);
-                            }
-                          }}
+                          onChange={() => toggleTaskCompletion(todo)}
                           className="w-5 h-5 rounded border-gray-300 text-indigo-600"
                           style={categoryColor ? { 
                             accentColor: categoryColor, 

@@ -16,6 +16,7 @@ export interface TodoItem {
   deadline: string | null;
   time: string | null;
   completed: boolean;
+  completedAt: string | null;
   dateAdded: string;
   category?: string;
 }

@@ -119,15 +119,17 @@ function App() {
         deadline: formatDate(tomorrow),
         time: "15:00",
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(yesterday),
         category: "Work"
       },
       {
-        id:.2,
+        id: 2,
         text: "Schedule team building event",
         deadline: formatDate(new Date(today.setDate(today.getDate() + 5))),
         time: null,
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(yesterday),
         category: "Work"
       },
@@ -137,6 +139,7 @@ function App() {
         deadline: formatDate(today),
         time: "14:30",
         completed: true,
+        completedAt: new Date(today.setHours(today.getHours() - 2)).toISOString(),
         dateAdded: formatDate(yesterday),
         category: "Work"
       },
@@ -146,6 +149,7 @@ function App() {
         deadline: formatDate(new Date(today.setDate(today.getDate() + 2))),
         time: null,
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(today)
       },
       {
@@ -154,6 +158,7 @@ function App() {
         deadline: formatDate(tomorrow),
         time: "11:00",
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(today),
         category: "Work"
       },
@@ -163,6 +168,7 @@ function App() {
         deadline: formatDate(today),
         time: "18:00",
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(today),
         category: "Health"
       },
@@ -172,6 +178,7 @@ function App() {
         deadline: formatDate(tomorrow),
         time: null,
         completed: false,
+        completedAt: null,
         dateAdded: formatDate(today),
         category: "Shopping"
       }
@@ -339,7 +346,29 @@ function App() {
           const parsedData = JSON.parse(storedData);
           setTemplateTasks(parsedData.templateTasks || []);
           setChecklists(parsedData.checklists || {});
-          setTodos(parsedData.todos || []);
+          
+          // Handle the case where we're upgrading from a version without completedAt
+          const existingTodos = parsedData.todos || [];
+          const upgradedTodos = existingTodos.map((todo: any) => {
+            // If a todo is completed but doesn't have completedAt, add it
+            if (todo.completed && !todo.completedAt) {
+              return {
+                ...todo,
+                // Use a timestamp from half an hour ago to prevent immediate hiding
+                completedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+              };
+            }
+            // Otherwise just ensure the completedAt field exists
+            if (!('completedAt' in todo)) {
+              return {
+                ...todo,
+                completedAt: null
+              };
+            }
+            return todo;
+          });
+          
+          setTodos(upgradedTodos);
           setTodoCategories(parsedData.todoCategories || []);
           setReadingItems(parsedData.readingItems || []);
           setEntertainmentItems(parsedData.entertainmentItems || []);
