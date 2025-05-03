@@ -4,10 +4,10 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import rrulePlugin from '@fullcalendar/rrule';
-import { listEvents, deleteEvent } from '../storage/eventStore';
+import { listEvents, deleteEvent, upsertEvent } from '../storage/eventStore';
 import EventDialog from '../components/events/EventDialog';
 import { EventItem } from '../types';
-import { Calendar, Plus, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Trash2, Upload, X } from 'lucide-react';
 import { dateUtils } from '../utils/dateUtils';
 
 export default function CalendarView() {
@@ -15,6 +15,8 @@ export default function CalendarView() {
   const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importJson, setImportJson] = useState('');
 
   const loadEvents = () => {
     setEvents(listEvents());
@@ -96,6 +98,73 @@ export default function CalendarView() {
     setShowDialog(false);
   };
 
+  // Import JSON functionality
+  function handleImportJson() {
+    if (!importJson.trim()) {
+      alert('Please enter valid JSON data.');
+      return;
+    }
+
+    try {
+      const importedData = JSON.parse(importJson);
+      
+      // Validate the imported data
+      if (!Array.isArray(importedData)) {
+        throw new Error('Imported data must be an array of event items');
+      }
+      
+      // Validate each event item
+      const validatedEvents: EventItem[] = [];
+      for (const item of importedData) {
+        if (typeof item !== 'object' || item === null) {
+          throw new Error('Each item must be an object');
+        }
+        
+        if (typeof item.title !== 'string' || !item.title.trim()) {
+          throw new Error('Each event must have a valid title property');
+        }
+        
+        if (typeof item.start_ts !== 'string' || !item.start_ts.trim()) {
+          throw new Error('Each event must have a valid start_ts property');
+        }
+        
+        if (typeof item.end_ts !== 'string' || !item.end_ts.trim()) {
+          throw new Error('Each event must have a valid end_ts property');
+        }
+        
+        // Create a new event with required fields
+        const newEvent: EventItem = {
+          title: item.title,
+          start_ts: item.start_ts,
+          end_ts: item.end_ts,
+          notes: typeof item.notes === 'string' ? item.notes : '',
+          recurrence: typeof item.recurrence === 'string' ? item.recurrence : ''
+        };
+        
+        // Add the event to the validated list
+        validatedEvents.push(newEvent);
+      }
+      
+      // Add events to storage
+      let addedCount = 0;
+      for (const event of validatedEvents) {
+        upsertEvent(event);
+        addedCount++;
+      }
+      
+      // Reload events
+      loadEvents();
+      
+      // Close the dialog and reset the input
+      setShowImportDialog(false);
+      setImportJson('');
+      
+      alert(`Successfully imported ${addedCount} event items.`);
+    } catch (error) {
+      alert(`Error importing data: ${error instanceof Error ? error.message : 'Invalid JSON format'}`);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-6">
@@ -103,16 +172,25 @@ export default function CalendarView() {
           <Calendar className="mr-3 h-7 w-7 text-indigo-600" /> 
           Calendar
         </h1>
-        <button 
-          onClick={() => {
-            setSelectedEvent(null);
-            setShowDialog(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow"
-        >
-          <Plus size={18} />
-          New Event
-        </button>
+        <div className="flex space-x-2">
+          <button 
+            onClick={() => setShowImportDialog(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-sm hover:shadow"
+          >
+            <Upload size={18} />
+            Import Events
+          </button>
+          <button 
+            onClick={() => {
+              setSelectedEvent(null);
+              setShowDialog(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-sm hover:shadow"
+          >
+            <Plus size={18} />
+            New Event
+          </button>
+        </div>
       </div>
 
       <FullCalendar 
@@ -199,6 +277,63 @@ export default function CalendarView() {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import JSON Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60]">
+          <div className="bg-white p-6 rounded-xl w-full max-w-xl space-y-4 shadow-xl border border-gray-200 animate-in fade-in duration-150 slide-in-from-bottom-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Import Calendar Events</h2>
+              <button 
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 rounded-full hover:bg-gray-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-gray-700">Paste your JSON data below. The data should be an array of event items with the following structure:</p>
+                <pre className="bg-gray-100 p-3 rounded text-xs overflow-auto max-h-40">
+{`[
+  {
+    "title": "Event title", // required
+    "start_ts": "2023-05-15T10:00:00", // required, ISO string
+    "end_ts": "2023-05-15T11:00:00", // required, ISO string
+    "notes": "Additional notes", // optional
+    "recurrence": "weekly:MO,TU" // optional, for recurring events
+  },
+  ...
+]`}
+                </pre>
+              </div>
+              
+              <textarea
+                className="w-full h-64 px-3 py-2 border rounded-lg"
+                value={importJson}
+                onChange={(e) => setImportJson(e.target.value)}
+                placeholder="Paste JSON data here..."
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowImportDialog(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImportJson}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                >
+                  Import
+                </button>
+              </div>
             </div>
           </div>
         </div>

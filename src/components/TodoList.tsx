@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, X, Plus, Filter, Settings, Clock } from 'lucide-react';
+import { Edit2, X, Plus, Filter, Settings, Clock, Upload } from 'lucide-react';
 import { TodoItem } from '../types';
 import { CategoryManager, Category } from './CategoryManager';
 
@@ -27,6 +27,8 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const [showSettings, setShowSettings] = useState(false);
   const [autoHideCompleted, setAutoHideCompleted] = useState(true);
   const [hideAfterHours, setHideAfterHours] = useState(24);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importJson, setImportJson] = useState('');
 
   function getCurrentDate() {
     const d = new Date();
@@ -280,9 +282,91 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     }
   }
 
+  // Import JSON functionality
+  function handleImportJson() {
+    if (!importJson.trim()) {
+      alert('Please enter valid JSON data.');
+      return;
+    }
+
+    try {
+      const importedData = JSON.parse(importJson);
+      
+      // Validate the imported data
+      if (!Array.isArray(importedData)) {
+        throw new Error('Imported data must be an array of todo items');
+      }
+      
+      // Validate each todo item and assign new IDs to avoid conflicts
+      const validatedTodos: TodoItem[] = importedData.map(item => {
+        if (typeof item !== 'object' || item === null) {
+          throw new Error('Each item must be an object');
+        }
+        
+        if (typeof item.text !== 'string' || !item.text.trim()) {
+          throw new Error('Each item must have a valid text property');
+        }
+        
+        // Create a new todo with required fields and current timestamp
+        const newTodo: TodoItem = {
+          id: Date.now() + Math.floor(Math.random() * 1000), // Generate a unique ID
+          text: item.text,
+          deadline: typeof item.deadline === 'string' ? item.deadline : null,
+          time: typeof item.time === 'string' ? item.time : null,
+          completed: typeof item.completed === 'boolean' ? item.completed : false,
+          completedAt: item.completed && item.completedAt ? item.completedAt : null,
+          dateAdded: new Date().toISOString(),
+          category: typeof item.category === 'string' ? item.category : undefined
+        };
+        
+        return newTodo;
+      });
+      
+      // Merge with existing todos
+      const mergedTodos = [...todos, ...validatedTodos];
+      onUpdateTodos(mergedTodos);
+      
+      // Close the dialog and reset the input
+      setShowImportDialog(false);
+      setImportJson('');
+      
+      alert(`Successfully imported ${validatedTodos.length} todo items.`);
+    } catch (error) {
+      alert(`Error importing data: ${error instanceof Error ? error.message : 'Invalid JSON format'}`);
+    }
+  }
+
   return (
     <section className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-indigo-700 mb-4">To-Do Items</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400">To-Do Items</h2>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setShowImportDialog(true)}
+            className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded"
+            title="Import todos from JSON"
+          >
+            <Upload size={16} />
+            <span>Import</span>
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:text-indigo-200 px-3 py-2 rounded"
+            title="Filter todos"
+          >
+            <Filter size={16} />
+            <span>Filter</span>
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:text-indigo-200 px-3 py-2 rounded"
+            title="Settings"
+          >
+            <Settings size={16} />
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
       
       {/* New ToDo Form - Now at the top, more prominent */}
       <div className="bg-indigo-50 rounded-lg p-4 mb-6 shadow-sm">
@@ -636,6 +720,63 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
           onUpdateCategories={onUpdateCategories}
         />
       </div>
+
+      {/* Import JSON Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl max-w-xl w-full space-y-4 shadow-xl animate-in fade-in duration-150 slide-in-from-bottom-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Import Todo Items</h3>
+              <button 
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-gray-700 dark:text-gray-300">Paste your JSON data below. The data should be an array of todo items with the following structure:</p>
+                <pre className="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-auto max-h-40">
+{`[
+  {
+    "text": "Task description", // required
+    "deadline": "YYYY-MM-DD", // optional
+    "time": "HH:MM", // optional
+    "completed": true|false, // optional, default: false
+    "category": "Category name" // optional
+  },
+  ...
+]`}
+                </pre>
+              </div>
+              
+              <textarea
+                className="w-full h-64 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                value={importJson}
+                onChange={(e) => setImportJson(e.target.value)}
+                placeholder="Paste JSON data here..."
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowImportDialog(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImportJson}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                >
+                  Import
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

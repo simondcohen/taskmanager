@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Check, Calendar, Clock } from 'lucide-react';
+import { X, Plus, Check, Calendar, Clock, Upload } from 'lucide-react';
 import { DeadlineItem } from '../types';
 import { dateUtils } from '../utils/dateUtils';
 
@@ -12,6 +12,8 @@ export function DeadlineTimeline({ deadlines, onUpdate }: DeadlineTimelineProps)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDeadline, setEditingDeadline] = useState<DeadlineItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importJson, setImportJson] = useState('');
 
   const getCurrentDate = () => {
     const d = new Date();
@@ -170,17 +172,81 @@ export function DeadlineTimeline({ deadlines, onUpdate }: DeadlineTimelineProps)
     );
   };
 
+  // Import JSON functionality
+  function handleImportJson() {
+    if (!importJson.trim()) {
+      alert('Please enter valid JSON data.');
+      return;
+    }
+
+    try {
+      const importedData = JSON.parse(importJson);
+      
+      // Validate the imported data
+      if (!Array.isArray(importedData)) {
+        throw new Error('Imported data must be an array of deadline items');
+      }
+      
+      // Validate each deadline item and generate IDs if needed
+      const validatedDeadlines: DeadlineItem[] = importedData.map(item => {
+        if (typeof item !== 'object' || item === null) {
+          throw new Error('Each item must be an object');
+        }
+        
+        if (typeof item.title !== 'string' || !item.title.trim()) {
+          throw new Error('Each item must have a valid title property');
+        }
+        
+        if (typeof item.dueDate !== 'string' || !item.dueDate.trim()) {
+          throw new Error('Each item must have a valid dueDate property (YYYY-MM-DD format)');
+        }
+        
+        // Create a new deadline with required fields
+        const newDeadline: DeadlineItem = {
+          id: item.id || Date.now().toString() + Math.floor(Math.random() * 1000).toString(), // Generate ID if not provided
+          title: item.title,
+          dueDate: item.dueDate,
+          notes: typeof item.notes === 'string' ? item.notes : '',
+          completed: typeof item.completed === 'boolean' ? item.completed : false
+        };
+        
+        return newDeadline;
+      });
+      
+      // Merge with existing deadlines
+      const mergedDeadlines = [...deadlines, ...validatedDeadlines];
+      onUpdate(mergedDeadlines);
+      
+      // Close the dialog and reset the input
+      setShowImportDialog(false);
+      setImportJson('');
+      
+      alert(`Successfully imported ${validatedDeadlines.length} deadline items.`);
+    } catch (error) {
+      alert(`Error importing data: ${error instanceof Error ? error.message : 'Invalid JSON format'}`);
+    }
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400">Deadlines</h2>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
-        >
-          <Plus size={16} />
-          <span>Add deadline</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setShowImportDialog(true)}
+            className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
+          >
+            <Upload size={16} />
+            <span>Import</span>
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
+          >
+            <Plus size={16} />
+            <span>Add deadline</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-between items-center mb-6">
@@ -332,6 +398,62 @@ export function DeadlineTimeline({ deadlines, onUpdate }: DeadlineTimelineProps)
                     Save
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import JSON Dialog */}
+      {showImportDialog && (
+        <div className="fixed inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl max-w-xl w-full space-y-4 shadow-xl animate-in fade-in duration-150 slide-in-from-bottom-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Import Deadlines</h3>
+              <button 
+                onClick={() => setShowImportDialog(false)}
+                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="mb-2 text-gray-700 dark:text-gray-300">Paste your JSON data below. The data should be an array of deadline items with the following structure:</p>
+                <pre className="bg-gray-100 dark:bg-gray-700 p-3 rounded text-xs overflow-auto max-h-40">
+{`[
+  {
+    "title": "Deadline title", // required
+    "dueDate": "YYYY-MM-DD", // required
+    "notes": "Additional notes", // optional
+    "completed": true|false // optional, default: false
+  },
+  ...
+]`}
+                </pre>
+              </div>
+              
+              <textarea
+                className="w-full h-64 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                value={importJson}
+                onChange={(e) => setImportJson(e.target.value)}
+                placeholder="Paste JSON data here..."
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={() => setShowImportDialog(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleImportJson}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                >
+                  Import
+                </button>
               </div>
             </div>
           </div>
