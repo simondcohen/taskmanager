@@ -144,6 +144,12 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       return true;
     })
     .sort((a, b) => {
+      // First sort by completion status - uncompleted tasks first
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1; // Completed items go to the bottom
+      }
+      
+      // Then apply the selected sort option
       if (todoSortOption === 'category') {
         // First sort by category
         const catA = a.category || '';
