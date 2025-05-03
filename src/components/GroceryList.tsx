@@ -10,7 +10,7 @@ interface GroceryListProps {
 export function GroceryList({ items, onUpdateItems }: GroceryListProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOption, setSortOption] = useState<'added' | 'alphabetical'>('added');
-  const [editIndex, setEditIndex] = useState(-1);
+  const [editItemId, setEditItemId] = useState<number | null>(null);
 
   const [newName, setNewName] = useState('');
   const [newQuantity, setNewQuantity] = useState(1);
@@ -100,14 +100,14 @@ export function GroceryList({ items, onUpdateItems }: GroceryListProps) {
           </p>
         ) : (
           <ul className="space-y-2">
-            {filteredItems.map((item, index) => (
+            {filteredItems.map((item) => (
               <li
                 key={item.id}
                 className={`p-4 rounded-lg border ${
                   item.completed ? 'bg-gray-50' : 'bg-white'
                 }`}
               >
-                {editIndex === index ? (
+                {editItemId === item.id ? (
                   <div className="space-y-2">
                     <input
                       type="text"
@@ -146,24 +146,27 @@ export function GroceryList({ items, onUpdateItems }: GroceryListProps) {
                             alert('Item name is required.');
                             return;
                           }
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...item,
-                            name: newName.trim(),
-                            quantity: newQuantity,
-                            category: 'other',
-                            unit: newUnit.trim() || undefined,
-                            notes: newNotes.trim() || undefined
-                          };
-                          onUpdateItems(newItems);
-                          setEditIndex(-1);
+                          const updatedItems = items.map(i => 
+                            i.id === item.id 
+                              ? {
+                                  ...i,
+                                  name: newName.trim(),
+                                  quantity: newQuantity,
+                                  category: i.category,
+                                  unit: newUnit.trim() || undefined,
+                                  notes: newNotes.trim() || undefined
+                                }
+                              : i
+                          );
+                          onUpdateItems(updatedItems);
+                          setEditItemId(null);
                         }}
                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                       >
                         Save
                       </button>
                       <button
-                        onClick={() => setEditIndex(-1)}
+                        onClick={() => setEditItemId(null)}
                         className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                       >
                         Cancel
@@ -177,12 +180,12 @@ export function GroceryList({ items, onUpdateItems }: GroceryListProps) {
                         type="checkbox"
                         checked={item.completed}
                         onChange={() => {
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...item,
-                            completed: !item.completed
-                          };
-                          onUpdateItems(newItems);
+                          const updatedItems = items.map(i => 
+                            i.id === item.id 
+                              ? { ...i, completed: !i.completed }
+                              : i
+                          );
+                          onUpdateItems(updatedItems);
                         }}
                         className="w-5 h-5 rounded border-gray-300 text-indigo-600"
                       />
@@ -203,7 +206,7 @@ export function GroceryList({ items, onUpdateItems }: GroceryListProps) {
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setEditIndex(index);
+                          setEditItemId(item.id);
                           setNewName(item.name);
                           setNewQuantity(item.quantity);
                           setNewUnit(item.unit || '');

@@ -10,7 +10,7 @@ interface EntertainmentListProps {
 export function EntertainmentList({ items, onUpdateItems }: EntertainmentListProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOption, setSortOption] = useState<'added' | 'alphabetical'>('added');
-  const [editIndex, setEditIndex] = useState(-1);
+  const [editItemId, setEditItemId] = useState<number | null>(null);
 
   const [newTitle, setNewTitle] = useState('');
   const [newNotes, setNewNotes] = useState('');
@@ -59,54 +59,54 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
     <section className="bg-white rounded-lg shadow p-6">
       <h2 className="text-xl font-semibold text-indigo-700 mb-6">Movies & TV Shows</h2>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="border rounded p-2"
-            >
-              <option value="all">All Items</option>
-              <option value="active">To Watch</option>
-              <option value="completed">Watched</option>
-            </select>
-          </div>
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <label className="text-gray-700">Status:</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="border rounded p-2"
+          >
+            <option value="all">All Items</option>
+            <option value="active">To Watch</option>
+            <option value="completed">Watched</option>
+          </select>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Sort By:</label>
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as any)}
-              className="border rounded p-2"
-            >
-              <option value="added">Date Added</option>
-              <option value="alphabetical">Alphabetical</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2">
+          <label className="text-gray-700">Sort By:</label>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value as any)}
+            className="border rounded p-2"
+          >
+            <option value="added">Date Added</option>
+            <option value="alphabetical">Alphabetical</option>
+          </select>
         </div>
       </div>
 
       <div className="space-y-4">
         {filteredItems.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
-            No items to display. Add new items below.
+            No movies or TV shows to display. Add new items below.
           </p>
         ) : (
           <ul className="space-y-2">
-            {filteredItems.map((item, index) => (
+            {filteredItems.map((item) => (
               <li
                 key={item.id}
-                className="p-4 rounded-lg border bg-gray-50"
+                className={`p-4 rounded-lg border ${
+                  item.completed ? 'bg-gray-50' : 'bg-white'
+                }`}
               >
-                {editIndex === index ? (
+                {editItemId === item.id ? (
                   <div className="space-y-2">
                     <input
                       type="text"
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
-                      placeholder="Title"
+                      placeholder="Movie or TV show title"
                       className="w-full p-2 border rounded"
                     />
                     <textarea
@@ -114,7 +114,7 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
                       onChange={(e) => setNewNotes(e.target.value)}
                       placeholder="Notes (optional)"
                       className="w-full p-2 border rounded"
-                      rows={3}
+                      rows={2}
                     />
                     <div className="flex gap-2">
                       <button
@@ -123,21 +123,24 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
                             alert('Title is required.');
                             return;
                           }
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...item,
-                            title: newTitle.trim(),
-                            notes: newNotes.trim() || undefined
-                          };
-                          onUpdateItems(newItems);
-                          setEditIndex(-1);
+                          const updatedItems = items.map(i => 
+                            i.id === item.id 
+                              ? {
+                                  ...i,
+                                  title: newTitle.trim(),
+                                  notes: newNotes.trim() || undefined
+                                }
+                              : i
+                          );
+                          onUpdateItems(updatedItems);
+                          setEditItemId(null);
                         }}
                         className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                       >
                         Save
                       </button>
                       <button
-                        onClick={() => setEditIndex(-1)}
+                        onClick={() => setEditItemId(null)}
                         className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                       >
                         Cancel
@@ -151,20 +154,22 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
                         type="checkbox"
                         checked={item.completed}
                         onChange={() => {
-                          const newItems = [...items];
-                          newItems[index] = {
-                            ...item,
-                            completed: !item.completed
-                          };
-                          onUpdateItems(newItems);
+                          const updatedItems = items.map(i => 
+                            i.id === item.id 
+                              ? { ...i, completed: !i.completed }
+                              : i
+                          );
+                          onUpdateItems(updatedItems);
                         }}
                         className="w-5 h-5 rounded border-gray-300 text-indigo-600"
                       />
                       <div className={item.completed ? 'line-through text-gray-400' : ''}>
-                        <div className="font-medium">{item.title}</div>
+                        <div className="font-medium">
+                          {item.title}
+                        </div>
                         {item.notes && (
                           <div className="text-sm text-gray-600 mt-1">
-                            {item.notes}
+                            Notes: {item.notes}
                           </div>
                         )}
                       </div>
@@ -172,7 +177,7 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
-                          setEditIndex(index);
+                          setEditItemId(item.id);
                           setNewTitle(item.title);
                           setNewNotes(item.notes || '');
                         }}
@@ -182,7 +187,7 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`Remove "${item.title}"?`)) {
+                          if (confirm(`Remove "${item.title}" from your watch list?`)) {
                             onUpdateItems(items.filter(i => i.id !== item.id));
                           }
                         }}
@@ -199,13 +204,13 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
         )}
 
         <div className="mt-6 space-y-4 border-t pt-6">
-          <h3 className="font-medium text-gray-900">Add New Item</h3>
+          <h3 className="font-medium text-gray-900">Add New Movie or TV Show</h3>
           <div className="space-y-2">
             <input
               type="text"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Title"
+              placeholder="Movie or TV show title"
               className="w-full p-2 border rounded"
             />
             <textarea
@@ -213,7 +218,7 @@ export function EntertainmentList({ items, onUpdateItems }: EntertainmentListPro
               onChange={(e) => setNewNotes(e.target.value)}
               placeholder="Notes (optional)"
               className="w-full p-2 border rounded"
-              rows={3}
+              rows={2}
             />
           </div>
           <button

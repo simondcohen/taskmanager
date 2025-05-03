@@ -11,13 +11,13 @@ interface ReadingListProps {
 export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOption, setSortOption] = useState<'added' | 'alphabetical'>('added');
-  const [editIndex, setEditIndex] = useState(-1);
+  const [editItemId, setEditItemId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const [newUrl, setNewUrl] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newNotes, setNewNotes] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
 
   const [editUrl, setEditUrl] = useState('');
   const [editTitle, setEditTitle] = useState('');
@@ -92,104 +92,100 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
     }
   };
 
-  const addItem = async () => {
-    if (!newUrl.trim() && !newTitle.trim()) {
-      setError('Please enter either an article URL or title');
+  const addArticle = async () => {
+    if (!editUrl.trim() && !editTitle.trim()) {
+      setError('Please enter either a URL or a title.');
       return;
     }
 
+    setIsLoading(true);
     try {
       const newItem: ReadingItem = {
         id: Date.now(),
-        url: newUrl.trim() ? newUrl.trim() : undefined,
-        title: newTitle.trim(),
-        siteName: undefined,
-        description: undefined,
-        imageUrl: undefined,
-        notes: newNotes.trim() ? newNotes.trim() : undefined,
+        url: editUrl.trim() || undefined,
+        title: editTitle.trim() || 'Untitled Article',
+        notes: editNotes.trim() || undefined,
         completed: false,
         dateAdded: getCurrentDate()
       };
 
       onUpdateItems([...items, newItem]);
-      setNewUrl('');
-      setNewTitle('');
-      setNewNotes('');
+      setEditUrl('');
+      setEditTitle('');
+      setEditNotes('');
       setError('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add reading item');
+      setError(err instanceof Error ? err.message : 'Failed to add article');
+    } finally {
       setIsLoading(false);
     }
   };
 
   return (
     <section className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold text-indigo-700 mb-6">Articles</h2>
+      <h2 className="text-xl font-semibold text-indigo-700 mb-6">Reading List</h2>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Status:</label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="border rounded p-2"
-            >
-              <option value="all">All Items</option>
-              <option value="active">To Read</option>
-              <option value="completed">Read</option>
-            </select>
-          </div>
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <label className="text-gray-700">Status:</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="border rounded p-2"
+          >
+            <option value="all">All Items</option>
+            <option value="active">To Read</option>
+            <option value="completed">Read</option>
+          </select>
+        </div>
 
-          <div className="flex items-center gap-2">
-            <label className="text-gray-700">Sort By:</label>
-            <select
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as any)}
-              className="border rounded p-2"
-            >
-              <option value="added">Date Added</option>
-              <option value="alphabetical">Alphabetical</option>
-            </select>
-          </div>
+        <div className="flex items-center gap-2">
+          <label className="text-gray-700">Sort By:</label>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value as any)}
+            className="border rounded p-2"
+          >
+            <option value="added">Date Added</option>
+            <option value="alphabetical">Alphabetical</option>
+          </select>
         </div>
       </div>
 
       <div className="space-y-4">
+        {error && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
         {filteredItems.length === 0 ? (
           <p className="text-center text-gray-500 py-8">
             No articles to display. Add new items below.
           </p>
         ) : (
           <ul className="space-y-2">
-            {filteredItems.map((item, index) => (
+            {filteredItems.map((item) => (
               <li
                 key={item.id}
-                className="p-4 rounded-lg border bg-gray-50"
+                className={`p-4 rounded-lg border ${
+                  item.completed ? 'bg-gray-50' : 'bg-white'
+                }`}
               >
-                {editIndex === index ? (
+                {editItemId === item.id ? (
                   <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editUrl}
-                        onChange={(e) => setEditUrl(e.target.value)}
-                        placeholder="Article URL"
-                        className="flex-grow p-2 border rounded"
-                      />
-                      <button
-                        onClick={() => handleUrlChange(editUrl, true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                        disabled={isLoading || !editUrl}
-                      >
-                        Fetch
-                      </button>
-                    </div>
+                    <input
+                      type="text"
+                      value={editUrl}
+                      onChange={(e) => setEditUrl(e.target.value)}
+                      placeholder="Article URL (optional)"
+                      className="w-full p-2 border rounded"
+                    />
                     <input
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
-                      placeholder="Title"
+                      placeholder="Article title"
                       className="w-full p-2 border rounded"
                     />
                     <textarea
@@ -208,15 +204,18 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                           }
 
                           try {
-                            const newItems = [...items];
-                            newItems[index] = {
-                              ...item,
-                              url: editUrl.trim() ? editUrl.trim() : undefined,
-                              title: editTitle.trim(),
-                              notes: editNotes.trim() ? editNotes.trim() : undefined
-                            };
-                            onUpdateItems(newItems);
-                            setEditIndex(-1);
+                            const updatedItems = items.map(i => 
+                              i.id === item.id 
+                                ? {
+                                    ...i,
+                                    url: editUrl.trim() ? editUrl.trim() : undefined,
+                                    title: editTitle.trim(),
+                                    notes: editNotes.trim() ? editNotes.trim() : undefined
+                                  }
+                                : i
+                            );
+                            onUpdateItems(updatedItems);
+                            setEditItemId(null);
                             setError('');
                           } catch (err) {
                             setError(err instanceof Error ? err.message : 'Failed to update article');
@@ -229,7 +228,7 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                       </button>
                       <button
                         onClick={() => {
-                          setEditIndex(-1);
+                          setEditItemId(null);
                           setError('');
                         }}
                         className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
@@ -240,73 +239,75 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex gap-3">
-                    <div className="h-10 w-10 flex-shrink-0 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center">
-                      {item.url ? <Link size={18} /> : <Book size={18} />}
-                    </div>
-                    <div className="flex-grow">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={item.completed}
-                            onChange={() => {
-                              const newItems = [...items];
-                              newItems[index] = {
-                                ...item,
-                                completed: !item.completed
-                              };
-                              onUpdateItems(newItems);
-                            }}
-                            className="w-5 h-5 rounded border-gray-300 text-indigo-600"
-                          />
-                          <div className={item.completed ? 'line-through text-gray-400' : ''}>
-                            <div className="font-medium flex items-center gap-1">
-                              {item.url ? (
-                                <a 
-                                  href={item.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="hover:text-indigo-600"
-                                >
-                                  {item.title}
-                                </a>
-                              ) : (
-                                <span>{item.title}</span>
-                              )}
-                              {item.url && item.url.trim() !== '' && <ExternalLink size={14} className="text-gray-400" />}
-                            </div>
-                            {item.notes && (
-                              <div className="text-sm italic text-gray-600 mt-1">
-                                {item.notes}
-                              </div>
-                            )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() => {
+                          const updatedItems = items.map(i => 
+                            i.id === item.id 
+                              ? { ...i, completed: !i.completed }
+                              : i
+                          );
+                          onUpdateItems(updatedItems);
+                        }}
+                        className="w-5 h-5 rounded border-gray-300 text-indigo-600"
+                      />
+                      <div className={item.completed ? 'line-through text-gray-400' : ''}>
+                        <div className="font-medium flex items-center gap-2">
+                          {item.title}
+                          {item.url && (
+                            <a 
+                              href={item.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                        </div>
+                        {item.siteName && (
+                          <div className="text-sm text-gray-600">
+                            {item.siteName}
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setEditIndex(index);
-                              setEditUrl(item.url || '');
-                              setEditTitle(item.title);
-                              setEditNotes(item.notes || '');
-                            }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Remove "${item.title}" from articles?`)) {
-                                onUpdateItems(items.filter(i => i.id !== item.id));
-                              }
-                            }}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
+                        )}
+                        {item.description && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {item.description}
+                          </div>
+                        )}
+                        {item.notes && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Notes: {item.notes}
+                          </div>
+                        )}
                       </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditItemId(item.id);
+                          setEditUrl(item.url || '');
+                          setEditTitle(item.title);
+                          setEditNotes(item.notes || '');
+                          setError('');
+                        }}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Remove "${item.title}" from reading list?`)) {
+                            onUpdateItems(items.filter(i => i.id !== item.id));
+                          }
+                        }}
+                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -317,68 +318,35 @@ export function ReadingList({ items, onUpdateItems }: ReadingListProps) {
 
         <div className="mt-6 space-y-4 border-t pt-6">
           <h3 className="font-medium text-gray-900">Add New Article</h3>
-          {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded border border-red-200">
-              {error}
-            </div>
-          )}
           <div className="space-y-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Article URL
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
-                  placeholder="https://example.com/article"
-                  className="flex-grow p-2 border rounded"
-                />
-                <button
-                  onClick={() => handleUrlChange(newUrl)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  disabled={isLoading || !newUrl}
-                >
-                  Fetch
-                </button>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Title {isLoading && <span className="text-gray-400 text-xs ml-2">Fetching metadata...</span>}
-              </label>
-              <input
-                type="text"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Article title"
-                className="w-full p-2 border rounded"
-                disabled={isLoading}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Notes (optional)
-              </label>
-              <textarea
-                value={newNotes}
-                onChange={(e) => setNewNotes(e.target.value)}
-                placeholder="Your notes about this article"
-                className="w-full p-2 border rounded"
-                rows={2}
-                disabled={isLoading}
-              />
-            </div>
+            <input
+              type="text"
+              value={editUrl}
+              onChange={(e) => setEditUrl(e.target.value)}
+              placeholder="Article URL (optional)"
+              className="w-full p-2 border rounded"
+            />
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Article title"
+              className="w-full p-2 border rounded"
+            />
+            <textarea
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              placeholder="Notes (optional)"
+              className="w-full p-2 border rounded"
+              rows={2}
+            />
           </div>
           <button
-            onClick={addItem}
-            disabled={isLoading || (!newUrl.trim() && !newTitle.trim())}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-indigo-300"
+            onClick={addArticle}
+            className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : 'Add to Articles'}
+            {isLoading ? 'Adding...' : 'Add to Reading List'}
           </button>
         </div>
       </div>

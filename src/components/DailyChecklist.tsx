@@ -156,25 +156,29 @@ export function DailyChecklist({
   };
 
   const toggleTaskStatus = (dateString: string, index: number, status: 'completed' | 'notCompleted') => {
-    const currentTasks = [...checklists[dateString]];
-    
-    if (status === 'completed') {
-      currentTasks[index] = { 
-        ...currentTasks[index], 
-        completed: !currentTasks[index].completed,
-        notCompleted: false 
-      };
-    } else {
-      currentTasks[index] = { 
-        ...currentTasks[index], 
-        notCompleted: !currentTasks[index].notCompleted,
-        completed: false 
-      };
-    }
+    const taskText = checklists[dateString][index].text;
+    const updatedTasks = checklists[dateString].map(task => {
+      if (task.text === taskText) {
+        if (status === 'completed') {
+          return { 
+            ...task, 
+            completed: !task.completed,
+            notCompleted: false 
+          };
+        } else {
+          return { 
+            ...task, 
+            notCompleted: !task.notCompleted,
+            completed: false 
+          };
+        }
+      }
+      return task;
+    });
     
     onUpdateChecklists({
       ...checklists,
-      [dateString]: currentTasks
+      [dateString]: updatedTasks
     });
   };
 
@@ -184,15 +188,16 @@ export function DailyChecklist({
   };
 
   const saveTaskNote = (index: number) => {
-    const currentTasks = [...checklists[selectedDay]];
-    currentTasks[index] = {
-      ...currentTasks[index],
-      notes: noteText.trim() || undefined
-    };
+    const taskText = checklists[selectedDay][index].text;
+    const updatedTasks = checklists[selectedDay].map(task => 
+      task.text === taskText
+        ? { ...task, notes: noteText.trim() || undefined }
+        : task
+    );
     
     onUpdateChecklists({
       ...checklists,
-      [selectedDay]: currentTasks
+      [selectedDay]: updatedTasks
     });
     
     setNoteIndex(-1);
