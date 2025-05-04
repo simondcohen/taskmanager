@@ -5,6 +5,44 @@ import { requestNotificationPermission, shouldNotifyForReminder, showReminderNot
 // Store active timers
 let reminderCheckInterval: number | null = null;
 let notifiedReminderIds = new Set<string>();
+// Track active in-app notifications
+let activeInAppReminders: ReminderItem[] = [];
+let inAppNotificationListeners: ((reminders: ReminderItem[]) => void)[] = [];
+
+/**
+ * Subscribe to in-app notification updates
+ * @param listener Function to call when active reminders change
+ * @returns Unsubscribe function
+ */
+export function subscribeToInAppNotifications(listener: (reminders: ReminderItem[]) => void): () => void {
+  inAppNotificationListeners.push(listener);
+  
+  // Immediately call with current state
+  listener([...activeInAppReminders]);
+  
+  // Return unsubscribe function
+  return () => {
+    inAppNotificationListeners = inAppNotificationListeners.filter(l => l !== listener);
+  };
+}
+
+/**
+ * Notify all listeners of the current active in-app reminders
+ */
+function notifyInAppListeners() {
+  inAppNotificationListeners.forEach(listener => {
+    listener([...activeInAppReminders]);
+  });
+}
+
+/**
+ * Dismiss an in-app notification without marking the reminder as complete
+ * @param reminderId ID of the reminder to dismiss
+ */
+export function dismissInAppNotification(reminderId: string) {
+  activeInAppReminders = activeInAppReminders.filter(r => r.id !== reminderId);
+  notifyInAppListeners();
+}
 
 /**
  * Checks reminders and shows notifications for any that are due
@@ -14,6 +52,9 @@ export async function checkReminders() {
   const now = new Date();
   
   console.log(`[ReminderService] Checking ${reminders.length} reminders at ${now.toLocaleTimeString()}`);
+
+  // Track newly active reminders for this check cycle
+  const newlyActiveReminders: ReminderItem[] = [];
 
   // Check if any reminders should be notified
   reminders.forEach(reminder => {
@@ -26,6 +67,11 @@ export async function checkReminders() {
         if (notification) {
           console.log(`[ReminderService] Notification sent for reminder: ${reminder.text}`);
           notifiedReminderIds.add(reminder.id);
+          
+          // Add to active in-app notifications if not already there
+          if (!activeInAppReminders.some(r => r.id === reminder.id)) {
+            newlyActiveReminders.push(reminder);
+          }
         } else {
           console.warn(`[ReminderService] Failed to show notification for reminder: ${reminder.text}`);
         }
@@ -33,12 +79,25 @@ export async function checkReminders() {
     }
   });
 
+  // Update active in-app reminders
+  if (newlyActiveReminders.length > 0) {
+    activeInAppReminders = [...activeInAppReminders, ...newlyActiveReminders];
+    notifyInAppListeners();
+  }
+
   // Clean up notified reminder IDs for completed reminders
   const activeReminderIds = new Set(reminders.filter(r => !r.completed).map(r => r.id));
   for (const id of notifiedReminderIds) {
     if (!activeReminderIds.has(id)) {
       notifiedReminderIds.delete(id);
     }
+  }
+  
+  // Clean up in-app notifications for completed reminders
+  const completedInAppReminders = activeInAppReminders.filter(r => !activeReminderIds.has(r.id));
+  if (completedInAppReminders.length > 0) {
+    activeInAppReminders = activeInAppReminders.filter(r => activeReminderIds.has(r.id));
+    notifyInAppListeners();
   }
 }
 
@@ -89,6 +148,7 @@ export function stopReminderService() {
  */
 export function resetReminderNotification(reminderId: string) {
   notifiedReminderIds.delete(reminderId);
+  dismissInAppNotification(reminderId);
 }
 
 /**
@@ -96,4 +156,14 @@ export function resetReminderNotification(reminderId: string) {
  */
 export function handleReminderUpdated(reminder: ReminderItem) {
   resetReminderNotification(reminder.id);
+}
+
+/**
+ * Handle when a reminder is marked as complete
+ */
+export function handleReminderCompleted(reminderId: string) {
+  // Remove from in-app notifications
+  dismissInAppNotification(reminderId);
+  // Remove from notified reminders
+  notifiedReminderIds.delete(reminderId);
 } 

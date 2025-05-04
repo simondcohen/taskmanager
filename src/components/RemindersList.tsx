@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ReminderItem } from '../types';
 import { dateUtils } from '../utils/dateUtils';
 import { X, Edit2, Check, Plus, Calendar, Clock, RefreshCcw, FileText, Bell } from 'lucide-react';
-import { startReminderService, handleReminderUpdated } from '../services/reminderService';
+import { startReminderService, handleReminderUpdated, handleReminderCompleted } from '../services/reminderService';
 import { requestNotificationPermission } from '../utils/notificationUtils';
 
 interface RemindersListProps {
@@ -113,7 +113,15 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
       r.id === id ? { ...r, completed: !r.completed, completedAt: !r.completed ? new Date().toISOString() : null } : r
     );
     onUpdateReminders(updatedReminders);
-    // The service will handle cleanup for completed reminders
+    
+    // Update notification state when a reminder is completed
+    const reminder = updatedReminders.find(r => r.id === id);
+    if (reminder && reminder.completed) {
+      handleReminderCompleted(id);
+    } else if (reminder && !reminder.completed) {
+      // Reset notification state if uncompleted
+      handleReminderUpdated(reminder);
+    }
   };
 
   // Group reminders by date
