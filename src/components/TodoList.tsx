@@ -29,6 +29,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const [hideAfterHours, setHideAfterHours] = useState(24);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importJson, setImportJson] = useState('');
+  const [showAddTodoForm, setShowAddTodoForm] = useState(false);
 
   function getCurrentDate() {
     const d = new Date();
@@ -342,6 +343,14 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         <h2 className="text-xl font-semibold text-indigo-700 dark:text-indigo-400">To-Do Items</h2>
         <div className="flex space-x-2">
           <button
+            onClick={() => setShowAddTodoForm(!showAddTodoForm)}
+            className="flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded"
+            title="Add new todo"
+          >
+            <Plus size={16} />
+            <span>Add New</span>
+          </button>
+          <button
             onClick={() => setShowImportDialog(true)}
             className="flex items-center gap-1 bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded"
             title="Import todos from JSON"
@@ -368,70 +377,75 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         </div>
       </div>
       
-      {/* New ToDo Form - Now at the top, more prominent */}
-      <div className="bg-indigo-50 rounded-lg p-4 mb-6 shadow-sm">
-        <h3 className="font-medium text-indigo-800 mb-3">Add New To-Do</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="col-span-1 md:col-span-2">
-            <input
-              type="text"
-              value={newTodoText}
-              onChange={(e) => setNewTodoText(e.target.value)}
-              placeholder="What needs to be done?"
-              className="w-full p-3 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <div className="flex items-center mb-1">
-              <label className="text-xs text-indigo-700 font-medium">Due Date (Optional)</label>
+      {/* New ToDo Form - Now collapsible */}
+      {showAddTodoForm && (
+        <div className="bg-indigo-50 rounded-lg p-4 mb-6 shadow-sm animate-in slide-in-from-top duration-300">
+          <h3 className="font-medium text-indigo-800 mb-3">Add New To-Do</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="col-span-1 md:col-span-2">
+              <input
+                type="text"
+                value={newTodoText}
+                onChange={(e) => setNewTodoText(e.target.value)}
+                placeholder="What needs to be done?"
+                className="w-full p-3 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
             </div>
-            <input
-              type="date"
-              value={newTodoDeadline}
-              onChange={(e) => setNewTodoDeadline(e.target.value)}
-              min={getCurrentDate()}
-              className="w-full p-2 border border-indigo-200 rounded-lg"
-            />
-          </div>
-          <div>
-            <div className="flex items-center mb-1">
-              <label className="text-xs text-indigo-700 font-medium">Time (Optional)</label>
+            <div>
+              <div className="flex items-center mb-1">
+                <label className="text-xs text-indigo-700 font-medium">Due Date (Optional)</label>
+              </div>
+              <input
+                type="date"
+                value={newTodoDeadline}
+                onChange={(e) => setNewTodoDeadline(e.target.value)}
+                min={getCurrentDate()}
+                className="w-full p-2 border border-indigo-200 rounded-lg"
+              />
             </div>
-            <input
-              type="time"
-              value={newTodoTime}
-              onChange={(e) => setNewTodoTime(e.target.value)}
-              className="w-full p-2 border border-indigo-200 rounded-lg"
-            />
-          </div>
-          <div>
-            <div className="flex items-center mb-1">
-              <label className="text-xs text-indigo-700 font-medium">Category (Optional)</label>
+            <div>
+              <div className="flex items-center mb-1">
+                <label className="text-xs text-indigo-700 font-medium">Time (Optional)</label>
+              </div>
+              <input
+                type="time"
+                value={newTodoTime}
+                onChange={(e) => setNewTodoTime(e.target.value)}
+                className="w-full p-2 border border-indigo-200 rounded-lg"
+              />
             </div>
-            <select
-              value={newTodoCategory}
-              onChange={(e) => setNewTodoCategory(e.target.value)}
-              className="w-full p-2 border border-indigo-200 rounded-lg"
-            >
-              <option value="">No Category</option>
-              {categories.map(category => (
-                <option key={category.name} value={category.name}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="col-span-1 md:col-span-2">
-            <button
-              onClick={addTodo}
-              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium transition"
-            >
-              <Plus className="w-4 h-4" />
-              Add To-Do
-            </button>
+            <div>
+              <div className="flex items-center mb-1">
+                <label className="text-xs text-indigo-700 font-medium">Category (Optional)</label>
+              </div>
+              <select
+                value={newTodoCategory}
+                onChange={(e) => setNewTodoCategory(e.target.value)}
+                className="w-full p-2 border border-indigo-200 rounded-lg"
+              >
+                <option value="">No Category</option>
+                {categories.map(category => (
+                  <option key={category.name} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-span-1 md:col-span-2">
+              <button
+                onClick={() => {
+                  addTodo();
+                  setShowAddTodoForm(false);
+                }}
+                className="w-full px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 font-medium transition"
+              >
+                <Plus className="w-4 h-4" />
+                Add To-Do
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Filters Section - Collapsible */}
       <div className="mb-6">
