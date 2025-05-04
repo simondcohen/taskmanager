@@ -45,6 +45,33 @@ export function dismissInAppNotification(reminderId: string) {
 }
 
 /**
+ * Force an in-app notification for testing
+ * Creates a test reminder and adds it to active reminders
+ */
+export function forceTestNotification() {
+  const testReminder: ReminderItem = {
+    id: `test-${Date.now()}`,
+    text: "Test Reminder",
+    date: new Date().toISOString().split('T')[0],
+    time: new Date().toTimeString().slice(0, 5),
+    completed: false,
+    completedAt: null,
+    notes: "This is a test reminder to verify notifications are working",
+  };
+  
+  console.log("[ReminderService] Creating test reminder", testReminder);
+  
+  // Add to active in-app notifications
+  activeInAppReminders = [...activeInAppReminders, testReminder];
+  notifyInAppListeners();
+  
+  // Also try to show a system notification
+  showReminderNotification(testReminder);
+  
+  return testReminder;
+}
+
+/**
  * Checks reminders and shows notifications for any that are due
  */
 export async function checkReminders() {
@@ -52,17 +79,33 @@ export async function checkReminders() {
   const now = new Date();
   
   console.log(`[ReminderService] Checking ${reminders.length} reminders at ${now.toLocaleTimeString()}`);
+  
+  if (reminders.length === 0) {
+    console.log("[ReminderService] No reminders found. Add a reminder to see notifications.");
+  }
 
   // Track newly active reminders for this check cycle
   const newlyActiveReminders: ReminderItem[] = [];
 
   // Check if any reminders should be notified
   reminders.forEach(reminder => {
-    if (!reminder.completed && !notifiedReminderIds.has(reminder.id)) {
+    if (!reminder.completed) {
       const shouldNotify = shouldNotifyForReminder(reminder);
-      console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify}`);
+      console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify} (already notified: ${notifiedReminderIds.has(reminder.id)})`);
       
-      if (shouldNotify) {
+      // For debugging - force a notification for today's reminders
+      if (new Date(reminder.date).toDateString() === now.toDateString() && !notifiedReminderIds.has(reminder.id)) {
+        console.log(`[ReminderService] Today's reminder found: ${reminder.text}`);
+        
+        // Add to active in-app notifications if not already there
+        if (!activeInAppReminders.some(r => r.id === reminder.id)) {
+          console.log(`[ReminderService] Adding reminder to in-app notifications: ${reminder.text}`);
+          newlyActiveReminders.push(reminder);
+          notifiedReminderIds.add(reminder.id);
+        }
+      }
+      
+      if (shouldNotify && !notifiedReminderIds.has(reminder.id)) {
         const notification = showReminderNotification(reminder);
         if (notification) {
           console.log(`[ReminderService] Notification sent for reminder: ${reminder.text}`);
@@ -81,10 +124,14 @@ export async function checkReminders() {
 
   // Update active in-app reminders
   if (newlyActiveReminders.length > 0) {
+    console.log(`[ReminderService] Adding ${newlyActiveReminders.length} new reminders to in-app notifications`);
     activeInAppReminders = [...activeInAppReminders, ...newlyActiveReminders];
     notifyInAppListeners();
   }
 
+  // Debug logs
+  console.log(`[ReminderService] Active in-app reminders: ${activeInAppReminders.length}`);
+  
   // Clean up notified reminder IDs for completed reminders
   const activeReminderIds = new Set(reminders.filter(r => !r.completed).map(r => r.id));
   for (const id of notifiedReminderIds) {

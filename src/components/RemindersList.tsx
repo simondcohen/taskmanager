@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ReminderItem } from '../types';
 import { dateUtils } from '../utils/dateUtils';
-import { X, Edit2, Check, Plus, Calendar, Clock, RefreshCcw, FileText, Bell } from 'lucide-react';
-import { startReminderService, handleReminderUpdated, handleReminderCompleted } from '../services/reminderService';
+import { X, Edit2, Check, Plus, Calendar, Clock, RefreshCcw, FileText, Bell, AlertTriangle } from 'lucide-react';
+import { startReminderService, handleReminderUpdated, handleReminderCompleted, forceTestNotification } from '../services/reminderService';
 import { requestNotificationPermission } from '../utils/notificationUtils';
 
 interface RemindersListProps {
@@ -124,6 +124,11 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
     }
   };
 
+  const handleForceNotification = () => {
+    const testReminder = forceTestNotification();
+    onUpdateReminders([testReminder, ...reminders]);
+  };
+
   // Group reminders by date
   const groupedReminders = reminders.reduce<{[key: string]: ReminderItem[]}>((acc, reminder) => {
     const key = reminder.date;
@@ -153,6 +158,14 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
               Enable Notifications
             </button>
           )}
+          <button
+            className="bg-amber-500 text-white px-4 py-2 rounded-full hover:bg-amber-600 flex items-center gap-1 shadow-sm transition-colors"
+            onClick={handleForceNotification}
+            title="Create a test notification"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Test Notification
+          </button>
           <button
             className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 flex items-center gap-1 shadow-sm transition-colors"
             onClick={() => setShowAddForm(!showAddForm)}
