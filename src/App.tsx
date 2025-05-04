@@ -496,216 +496,218 @@ function App() {
         onDismiss={dismissInAppNotification}
       />
       
-      <div className="max-w-3xl mx-auto">
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl font-bold text-indigo-600">Task Manager</h1>
-            <button
-              onClick={() => setIsCompactView(!isCompactView)}
-              className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-              title={isCompactView ? "Show labels" : "Compact view"}
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
-          </div>
-
-          <nav className="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="flex flex-col sm:flex-row">
-              {tabGroups.map((group, groupIndex) => (
-                <div
-                  key={group.name}
-                  className={`flex-1 ${groupIndex > 0 ? 'sm:border-l' : ''}`}
-                >
-                  <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
-                    {group.name}
-                  </div>
-                  <div className="px-2 pb-2">
-                    {group.tabs.map((tab) => {
-                      const Icon = tab.icon;
-                      return (
-                        <button
-                          key={tab.id}
-                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
-                            activeTab === tab.id
-                              ? 'bg-indigo-100 text-indigo-700'
-                              : 'hover:bg-gray-100'
-                          }`}
-                          onClick={() => setActiveTab(tab.id as Tab)}
-                        >
-                          <Icon className="w-5 h-5 flex-shrink-0" />
-                          {!isCompactView && (
-                            <span className="ml-3">{tab.label}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+      <div className={`transition-all duration-300 ease-in-out ${activeInAppReminders.length > 0 ? 'pl-12 md:pl-16' : ''}`}>
+        <div className="max-w-3xl mx-auto">
+          <header className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-4xl font-bold text-indigo-600">Task Manager</h1>
+              <button
+                onClick={() => setIsCompactView(!isCompactView)}
+                className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
+                title={isCompactView ? "Show labels" : "Compact view"}
+              >
+                <LayoutGrid className="w-5 h-5" />
+              </button>
             </div>
-          </nav>
-        </header>
-        
-        <main>
-          <Routes>
-            <Route path="/" element={
-              <div className={`${isCompactView ? 'max-h-screen' : ''}`}>
-                {activeTab === 'daily' && (
-                  <DailyChecklist
-                    templateTasks={templateTasks}
-                    checklists={checklists}
-                    selectedDay={selectedDay}
-                    onUpdateChecklists={setChecklists}
-                    onUpdateTemplate={setTemplateTasks}
-                    onSelectDay={setSelectedDay}
-                  />
-                )}
-                {activeTab === 'todos' && (
-                  <TodoList 
-                    todos={todos} 
-                    onUpdateTodos={setTodos} 
-                    categories={todoCategories}
-                    onUpdateCategories={setTodoCategories}
-                  />
-                )}
-                {activeTab === 'calendar' && (
-                  <CalendarView />
-                )}
-                {activeTab === 'grocery' && (
-                  <GroceryList
-                    items={groceryItems}
-                    onUpdateItems={setGroceryItems}
-                  />
-                )}
-                {activeTab === 'shopping' && (
-                  <ShoppingList
-                    items={shoppingItems}
-                    onUpdateItems={setShoppingItems}
-                  />
-                )}
-                {activeTab === 'reading' && (
-                  <ReadingList
-                    items={readingItems}
-                    onUpdateItems={setReadingItems}
-                  />
-                )}
-                {activeTab === 'entertainment' && (
-                  <EntertainmentList
-                    items={entertainmentItems}
-                    onUpdateItems={setEntertainmentItems}
-                  />
-                )}
-                {activeTab === 'videos' && (
-                  <VideoList
-                    items={videoItems}
-                    onUpdateItems={setVideoItems}
-                  />
-                )}
-                {activeTab === 'podcasts' && (
-                  <PodcastList
-                    items={podcastItems}
-                    onUpdateItems={setPodcastItems}
-                  />
-                )}
-                {activeTab === 'deadlines' && (
-                  <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
-                )}
-                {activeTab === 'medications' && (
-                  <MedicationList
+
+            <nav className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="flex flex-col sm:flex-row">
+                {tabGroups.map((group, groupIndex) => (
+                  <div
+                    key={group.name}
+                    className={`flex-1 ${groupIndex > 0 ? 'sm:border-l' : ''}`}
+                  >
+                    <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
+                      {group.name}
+                    </div>
+                    <div className="px-2 pb-2">
+                      {group.tabs.map((tab) => {
+                        const Icon = tab.icon;
+                        return (
+                          <button
+                            key={tab.id}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                              activeTab === tab.id
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'hover:bg-gray-100'
+                            }`}
+                            onClick={() => setActiveTab(tab.id as Tab)}
+                          >
+                            <Icon className="w-5 h-5 flex-shrink-0" />
+                            {!isCompactView && (
+                              <span className="ml-3">{tab.label}</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </nav>
+          </header>
+          
+          <main>
+            <Routes>
+              <Route path="/" element={
+                <div className={`${isCompactView ? 'max-h-screen' : ''}`}>
+                  {activeTab === 'daily' && (
+                    <DailyChecklist
+                      templateTasks={templateTasks}
+                      checklists={checklists}
+                      selectedDay={selectedDay}
+                      onUpdateChecklists={setChecklists}
+                      onUpdateTemplate={setTemplateTasks}
+                      onSelectDay={setSelectedDay}
+                    />
+                  )}
+                  {activeTab === 'todos' && (
+                    <TodoList 
+                      todos={todos} 
+                      onUpdateTodos={setTodos} 
+                      categories={todoCategories}
+                      onUpdateCategories={setTodoCategories}
+                    />
+                  )}
+                  {activeTab === 'calendar' && (
+                    <CalendarView />
+                  )}
+                  {activeTab === 'grocery' && (
+                    <GroceryList
+                      items={groceryItems}
+                      onUpdateItems={setGroceryItems}
+                    />
+                  )}
+                  {activeTab === 'shopping' && (
+                    <ShoppingList
+                      items={shoppingItems}
+                      onUpdateItems={setShoppingItems}
+                    />
+                  )}
+                  {activeTab === 'reading' && (
+                    <ReadingList
+                      items={readingItems}
+                      onUpdateItems={setReadingItems}
+                    />
+                  )}
+                  {activeTab === 'entertainment' && (
+                    <EntertainmentList
+                      items={entertainmentItems}
+                      onUpdateItems={setEntertainmentItems}
+                    />
+                  )}
+                  {activeTab === 'videos' && (
+                    <VideoList
+                      items={videoItems}
+                      onUpdateItems={setVideoItems}
+                    />
+                  )}
+                  {activeTab === 'podcasts' && (
+                    <PodcastList
+                      items={podcastItems}
+                      onUpdateItems={setPodcastItems}
+                    />
+                  )}
+                  {activeTab === 'deadlines' && (
+                    <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
+                  )}
+                  {activeTab === 'medications' && (
+                    <MedicationList
+                      items={medicationItems}
+                      onUpdateItems={setMedicationItems}
+                    />
+                  )}
+                  {activeTab === 'reminders' && (
+                    <RemindersList
+                      reminders={reminders}
+                      onUpdateReminders={setReminders}
+                    />
+                  )}
+                  {activeTab === 'data' && (
+                    <DataManagement
+                      templateTasks={templateTasks}
+                      checklists={checklists}
+                      todos={todos}
+                      groceryItems={groceryItems}
+                      shoppingItems={shoppingItems}
+                      readingItems={readingItems}
+                      entertainmentItems={entertainmentItems}
+                      videoItems={videoItems}
+                      podcastItems={podcastItems}
+                      deadlines={deadlines}
+                      medicationItems={medicationItems}
+                      selectedDay={selectedDay}
+                      onImportData={data => {
+                        if (data.todos) {
+                          setTodos(prev => {
+                            const map = new Map(prev.map(t => [t.id, { ...t }]));
+                            data.todos.forEach(nt => {
+                              if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
+                              else map.set(nt.id, nt);
+                            });
+                            return Array.from(map.values());
+                          });
+                        }
+
+                        if (data.deadlines) {
+                          setDeadlines(prev => {
+                            const map = new Map(prev.map(d => [d.id, { ...d }]));
+                            (data.deadlines || []).forEach((nd: DeadlineItem) => {
+                              if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
+                              else map.set(nd.id, nd);
+                            });
+                            return Array.from(map.values());
+                          });
+                        }
+
+                        if (data.templateTasks) setTemplateTasks(data.templateTasks);
+                        if (data.checklists) setChecklists(data.checklists);
+                        if (data.medicationItems) setMedicationItems(data.medicationItems);
+                        if (data.readingItems) setReadingItems(data.readingItems);
+                        if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
+                        if (data.videoItems) setVideoItems(data.videoItems);
+                        if (data.shoppingItems) setShoppingItems(data.shoppingItems);
+                        if (data.groceryItems) setGroceryItems(data.groceryItems);
+                        if (data.podcastItems) setPodcastItems(data.podcastItems);
+                        if (data.todoCategories) setTodoCategories(data.todoCategories);
+                      }}
+                      onResetApp={() => {
+                        if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+                          setTemplateTasks([]);
+                          setChecklists({});
+                          setTodos([]);
+                          setTodoCategories([]);
+                          setReadingItems([]);
+                          setEntertainmentItems([]);
+                          setVideoItems([]);
+                          setShoppingItems([]);
+                          setGroceryItems([]);
+                          setPodcastItems([]);
+                          setDeadlines([]);
+                          setMedicationItems([]);
+                          localStorage.removeItem('react-task-manager-app');
+                          localStorage.removeItem('medications');
+                        }
+                      }}
+                      isShowingDemo={isShowingDemo}
+                      onLoadDemo={() => setIsShowingDemo(true)}
+                      onClearDemo={() => setIsShowingDemo(false)}
+                    />
+                  )}
+                </div>
+              } />
+              <Route 
+                path="/medications" 
+                element={
+                  <MedicationList 
                     items={medicationItems}
                     onUpdateItems={setMedicationItems}
                   />
-                )}
-                {activeTab === 'reminders' && (
-                  <RemindersList
-                    reminders={reminders}
-                    onUpdateReminders={setReminders}
-                  />
-                )}
-                {activeTab === 'data' && (
-                  <DataManagement
-                    templateTasks={templateTasks}
-                    checklists={checklists}
-                    todos={todos}
-                    groceryItems={groceryItems}
-                    shoppingItems={shoppingItems}
-                    readingItems={readingItems}
-                    entertainmentItems={entertainmentItems}
-                    videoItems={videoItems}
-                    podcastItems={podcastItems}
-                    deadlines={deadlines}
-                    medicationItems={medicationItems}
-                    selectedDay={selectedDay}
-                    onImportData={data => {
-                      if (data.todos) {
-                        setTodos(prev => {
-                          const map = new Map(prev.map(t => [t.id, { ...t }]));
-                          data.todos.forEach(nt => {
-                            if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
-                            else map.set(nt.id, nt);
-                          });
-                          return Array.from(map.values());
-                        });
-                      }
-
-                      if (data.deadlines) {
-                        setDeadlines(prev => {
-                          const map = new Map(prev.map(d => [d.id, { ...d }]));
-                          (data.deadlines || []).forEach((nd: DeadlineItem) => {
-                            if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
-                            else map.set(nd.id, nd);
-                          });
-                          return Array.from(map.values());
-                        });
-                      }
-
-                      if (data.templateTasks) setTemplateTasks(data.templateTasks);
-                      if (data.checklists) setChecklists(data.checklists);
-                      if (data.medicationItems) setMedicationItems(data.medicationItems);
-                      if (data.readingItems) setReadingItems(data.readingItems);
-                      if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
-                      if (data.videoItems) setVideoItems(data.videoItems);
-                      if (data.shoppingItems) setShoppingItems(data.shoppingItems);
-                      if (data.groceryItems) setGroceryItems(data.groceryItems);
-                      if (data.podcastItems) setPodcastItems(data.podcastItems);
-                      if (data.todoCategories) setTodoCategories(data.todoCategories);
-                    }}
-                    onResetApp={() => {
-                      if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
-                        setTemplateTasks([]);
-                        setChecklists({});
-                        setTodos([]);
-                        setTodoCategories([]);
-                        setReadingItems([]);
-                        setEntertainmentItems([]);
-                        setVideoItems([]);
-                        setShoppingItems([]);
-                        setGroceryItems([]);
-                        setPodcastItems([]);
-                        setDeadlines([]);
-                        setMedicationItems([]);
-                        localStorage.removeItem('react-task-manager-app');
-                        localStorage.removeItem('medications');
-                      }
-                    }}
-                    isShowingDemo={isShowingDemo}
-                    onLoadDemo={() => setIsShowingDemo(true)}
-                    onClearDemo={() => setIsShowingDemo(false)}
-                  />
-                )}
-              </div>
-            } />
-            <Route 
-              path="/medications" 
-              element={
-                <MedicationList 
-                  items={medicationItems}
-                  onUpdateItems={setMedicationItems}
-                />
-              } 
-            />
-          </Routes>
-        </main>
+                } 
+              />
+            </Routes>
+          </main>
+        </div>
       </div>
     </div>
   );
