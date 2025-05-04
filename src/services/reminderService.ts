@@ -45,34 +45,38 @@ export function dismissInAppNotification(reminderId: string) {
 }
 
 /**
- * Force an in-app notification for testing
- * Creates a test reminder and adds it to active reminders
+ * Check if a reminder is currently due and should be shown
+ * This is separate from shouldNotifyForReminder as we want stricter rules for displaying in the sidebar
  */
-export function forceTestNotification() {
-  // Get current time but set it a minute in the past to ensure it triggers immediately
+function isReminderDueNow(reminder: ReminderItem): boolean {
+  if (reminder.completed) {
+    return false;
+  }
+
   const now = new Date();
-  now.setMinutes(now.getMinutes() - 1);
+  const reminderDate = new Date(reminder.date);
   
-  const testReminder: ReminderItem = {
-    id: `test-${Date.now()}`,
-    text: "Test Reminder",
-    date: now.toISOString().split('T')[0],
-    time: now.toTimeString().slice(0, 5),
-    completed: false,
-    completedAt: null,
-    notes: "This is a test reminder to verify notifications are working",
-  };
-  
-  console.log("[ReminderService] Creating test reminder", testReminder);
-  
-  // Add to active in-app notifications
-  activeInAppReminders = [...activeInAppReminders, testReminder];
-  notifyInAppListeners();
-  
-  // Also try to show a system notification
-  showReminderNotification(testReminder);
-  
-  return testReminder;
+  // Set time if provided, otherwise use start of day
+  if (reminder.time) {
+    const [hours, minutes] = reminder.time.split(':').map(Number);
+    reminderDate.setHours(hours, minutes, 0, 0);
+  } else {
+    // For reminders without time, use start of day
+    reminderDate.setHours(0, 0, 0, 0);
+  }
+
+  // Time-based reminders should only show when the exact time has passed
+  if (reminder.time) {
+    // Show only if the reminder time has passed
+    return reminderDate <= now;
+  } else {
+    // For date-only reminders, show on that day or past days
+    if (reminderDate.toDateString() === now.toDateString()) {
+      return true; // It's today
+    } else {
+      return reminderDate < now; // It's past due
+    }
+  }
 }
 
 /**
@@ -91,26 +95,33 @@ export async function checkReminders() {
   // Track newly active reminders for this check cycle
   const newlyActiveReminders: ReminderItem[] = [];
 
+  // First, clean up any reminders in the active list that are no longer due
+  // (in case their due time was moved forward)
+  activeInAppReminders = activeInAppReminders.filter(reminder => isReminderDueNow(reminder));
+
   // Check if any reminders should be notified
   reminders.forEach(reminder => {
     if (!reminder.completed) {
       const shouldNotify = shouldNotifyForReminder(reminder);
-      console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify} (already notified: ${notifiedReminderIds.has(reminder.id)})`);
+      const isDueNow = isReminderDueNow(reminder);
       
-      // Only show notifications for reminders that are actually due
+      console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify}, is due now: ${isDueNow} (already notified: ${notifiedReminderIds.has(reminder.id)})`);
+      
+      // Only send system notification when it first becomes due (shouldNotify)
       if (shouldNotify && !notifiedReminderIds.has(reminder.id)) {
         const notification = showReminderNotification(reminder);
         if (notification) {
           console.log(`[ReminderService] Notification sent for reminder: ${reminder.text}`);
           notifiedReminderIds.add(reminder.id);
-          
-          // Add to active in-app notifications if not already there
-          if (!activeInAppReminders.some(r => r.id === reminder.id)) {
-            newlyActiveReminders.push(reminder);
-          }
         } else {
           console.warn(`[ReminderService] Failed to show notification for reminder: ${reminder.text}`);
         }
+      }
+      
+      // Only add to in-app notifications if it's actually due now
+      if (isDueNow && !activeInAppReminders.some(r => r.id === reminder.id)) {
+        console.log(`[ReminderService] Adding to in-app notifications: ${reminder.text}`);
+        newlyActiveReminders.push(reminder);
       }
     }
   });
@@ -206,4 +217,35 @@ export function handleReminderCompleted(reminderId: string) {
   dismissInAppNotification(reminderId);
   // Remove from notified reminders
   notifiedReminderIds.delete(reminderId);
+}
+
+/**
+ * Force an in-app notification for testing
+ * Creates a test reminder and adds it to active reminders
+ */
+export function forceTestNotification() {
+  // Create a test reminder that's definitely due now (5 minutes ago)
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - 5);
+  
+  const testReminder: ReminderItem = {
+    id: `test-${Date.now()}`,
+    text: "Test Reminder",
+    date: now.toISOString().split('T')[0],
+    time: now.toTimeString().slice(0, 5),
+    completed: false,
+    completedAt: null,
+    notes: "This is a test reminder to verify notifications are working",
+  };
+  
+  console.log("[ReminderService] Creating test reminder", testReminder);
+  
+  // Add to active in-app notifications
+  activeInAppReminders = [...activeInAppReminders, testReminder];
+  notifyInAppListeners();
+  
+  // Also try to show a system notification
+  showReminderNotification(testReminder);
+  
+  return testReminder;
 } 

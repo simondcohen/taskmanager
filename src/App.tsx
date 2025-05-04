@@ -68,6 +68,7 @@ function App() {
     
     // Subscribe to in-app notifications
     const unsubscribe = subscribeToInAppNotifications((activeReminders) => {
+      console.log("[App] Received updated active reminders:", activeReminders.length);
       setActiveInAppReminders(activeReminders);
     });
     
