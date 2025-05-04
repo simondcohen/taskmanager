@@ -101,7 +101,18 @@ export interface DeadlineItem {
   completed?: boolean;
 }
 
-export type Tab = 'daily' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications';
+export interface ReminderItem {
+  id: string;
+  text: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm (optional)
+  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | string; // string for custom rules
+  completed: boolean;
+  completedAt?: string | null;
+  notes?: string;
+}
+
+export type Tab = 'daily' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications' | 'reminders';
 
 export interface CalendarDay {
   day: number;
