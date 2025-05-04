@@ -489,69 +489,67 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-100 p-4">
       <InAppNotifications 
         activeReminders={activeInAppReminders}
         onMarkComplete={handleCompleteReminder}
         onDismiss={dismissInAppNotification}
       />
       
-      <div className="flex flex-col flex-grow">
-        <header className="bg-white shadow-sm">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-4xl font-bold text-indigo-600">Task Manager</h1>
-              <button
-                onClick={() => setIsCompactView(!isCompactView)}
-                className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
-                title={isCompactView ? "Show labels" : "Compact view"}
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-            </div>
-
-            <nav className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="flex flex-col sm:flex-row">
-                {tabGroups.map((group, groupIndex) => (
-                  <div
-                    key={group.name}
-                    className={`flex-1 ${groupIndex > 0 ? 'sm:border-l' : ''}`}
-                  >
-                    <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
-                      {group.name}
-                    </div>
-                    <div className="px-2 pb-2">
-                      {group.tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        return (
-                          <button
-                            key={tab.id}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
-                              activeTab === tab.id
-                                ? 'bg-indigo-100 text-indigo-700'
-                                : 'hover:bg-gray-100'
-                            }`}
-                            onClick={() => setActiveTab(tab.id as Tab)}
-                          >
-                            <Icon className="w-5 h-5 flex-shrink-0" />
-                            {!isCompactView && (
-                              <span className="ml-3">{tab.label}</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </nav>
+      <div className="max-w-3xl mx-auto">
+        <header className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-4xl font-bold text-indigo-600">Task Manager</h1>
+            <button
+              onClick={() => setIsCompactView(!isCompactView)}
+              className="p-2 text-gray-600 hover:text-indigo-600 transition-colors"
+              title={isCompactView ? "Show labels" : "Compact view"}
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
           </div>
-        </header>
 
+          <nav className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="flex flex-col sm:flex-row">
+              {tabGroups.map((group, groupIndex) => (
+                <div
+                  key={group.name}
+                  className={`flex-1 ${groupIndex > 0 ? 'sm:border-l' : ''}`}
+                >
+                  <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
+                    {group.name}
+                  </div>
+                  <div className="px-2 pb-2">
+                    {group.tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                            activeTab === tab.id
+                              ? 'bg-indigo-100 text-indigo-700'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          onClick={() => setActiveTab(tab.id as Tab)}
+                        >
+                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          {!isCompactView && (
+                            <span className="ml-3">{tab.label}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </nav>
+        </header>
+        
         <main>
           <Routes>
             <Route path="/" element={
-              <div className={`flex-grow p-4 md:p-8 overflow-auto ${isCompactView ? 'max-h-screen' : ''}`}>
+              <div className={`${isCompactView ? 'max-h-screen' : ''}`}>
                 {activeTab === 'daily' && (
                   <DailyChecklist
                     templateTasks={templateTasks}
