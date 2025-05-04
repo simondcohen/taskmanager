@@ -13,8 +13,11 @@ import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem } from './types';
 import { Category } from './components/CategoryManager';
+import { RemindersList } from './components/RemindersList';
+import { listReminders, upsertReminder, deleteReminder } from './storage/reminderStore';
+import { startReminderService, stopReminderService } from './services/reminderService';
 
 // Group tabs by category
 const tabGroups = [
@@ -24,6 +27,7 @@ const tabGroups = [
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
+      { id: 'reminders', label: 'Reminders', icon: CheckSquare },
       { id: 'medications', label: 'Medications', icon: Pill },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
@@ -54,6 +58,17 @@ function App() {
   });
   const [isShowingDemo, setIsShowingDemo] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
+  
+  // Start the reminder service when the app loads
+  useEffect(() => {
+    // Start the reminder service
+    startReminderService();
+    
+    // Clean up when the app unmounts
+    return () => {
+      stopReminderService();
+    };
+  }, []);
   
   // Get dates for demo data
   const today = new Date();
@@ -331,6 +346,7 @@ function App() {
     const savedItems = localStorage.getItem('medicationItems');
     return savedItems ? JSON.parse(savedItems) : [];
   });
+  const [reminders, setReminders] = useState<ReminderItem[]>(() => listReminders());
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -442,6 +458,16 @@ function App() {
   useEffect(() => {
     localStorage.setItem('medicationItems', JSON.stringify(medicationItems));
   }, [medicationItems]);
+
+  // Load reminders from localStorage on mount
+  useEffect(() => {
+    setReminders(listReminders());
+  }, []);
+
+  // Save reminders to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('reminders', JSON.stringify(reminders));
+  }, [reminders]);
 
   return (
     <div className="min-h-screen bg-gray-100 p-4">
@@ -563,6 +589,12 @@ function App() {
                   <MedicationList
                     items={medicationItems}
                     onUpdateItems={setMedicationItems}
+                  />
+                )}
+                {activeTab === 'reminders' && (
+                  <RemindersList
+                    reminders={reminders}
+                    onUpdateReminders={setReminders}
                   />
                 )}
                 {activeTab === 'data' && (
