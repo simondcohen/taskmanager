@@ -49,11 +49,15 @@ export function dismissInAppNotification(reminderId: string) {
  * Creates a test reminder and adds it to active reminders
  */
 export function forceTestNotification() {
+  // Get current time but set it a minute in the past to ensure it triggers immediately
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - 1);
+  
   const testReminder: ReminderItem = {
     id: `test-${Date.now()}`,
     text: "Test Reminder",
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0, 5),
+    date: now.toISOString().split('T')[0],
+    time: now.toTimeString().slice(0, 5),
     completed: false,
     completedAt: null,
     notes: "This is a test reminder to verify notifications are working",
@@ -93,18 +97,7 @@ export async function checkReminders() {
       const shouldNotify = shouldNotifyForReminder(reminder);
       console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify} (already notified: ${notifiedReminderIds.has(reminder.id)})`);
       
-      // For debugging - force a notification for today's reminders
-      if (new Date(reminder.date).toDateString() === now.toDateString() && !notifiedReminderIds.has(reminder.id)) {
-        console.log(`[ReminderService] Today's reminder found: ${reminder.text}`);
-        
-        // Add to active in-app notifications if not already there
-        if (!activeInAppReminders.some(r => r.id === reminder.id)) {
-          console.log(`[ReminderService] Adding reminder to in-app notifications: ${reminder.text}`);
-          newlyActiveReminders.push(reminder);
-          notifiedReminderIds.add(reminder.id);
-        }
-      }
-      
+      // Only show notifications for reminders that are actually due
       if (shouldNotify && !notifiedReminderIds.has(reminder.id)) {
         const notification = showReminderNotification(reminder);
         if (notification) {

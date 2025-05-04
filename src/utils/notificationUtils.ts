@@ -106,13 +106,15 @@ export function shouldNotifyForReminder(reminder: ReminderItem): boolean {
 
   // For today's reminders:
   if (reminderDate.toDateString() === now.toDateString()) {
-    // If reminder has time, check if it's within 5 minutes
+    // If reminder has time, only show if it's due or up to 5 minutes past due
     if (reminder.time) {
-      const timeDiff = Math.abs(now.getTime() - reminderDate.getTime());
-      return timeDiff < 300000; // 5 minutes in milliseconds
+      // Calculate time difference in milliseconds
+      const timeDiff = now.getTime() - reminderDate.getTime();
+      // Only notify if the time has passed (positive diff) and is less than 5 minutes
+      return timeDiff >= 0 && timeDiff < 300000; // 5 minutes in milliseconds
     } else {
-      // For reminders without time, show all day
-      return true;
+      // For reminders without time, only show if we're already past the start of the day
+      return now.getHours() > 0 || now.getMinutes() > 0;
     }
   }
   
