@@ -107,6 +107,6 @@ export function shouldNotifyForReminder(reminder: ReminderItem): boolean {
   // Notification should trigger when the current time matches or is just past the reminder time
   const timeDiff = now.getTime() - reminderDate.getTime();
   
-  // Notify if we're within 1 minute of the reminder time
-  return timeDiff >= 0 && timeDiff < 60000;
+  // Notify if we're within 5 minutes of the reminder time (increased from 1 minute)
+  return timeDiff >= 0 && timeDiff < 300000;
 } 

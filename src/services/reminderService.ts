@@ -1,6 +1,6 @@
 import { listReminders } from '../storage/reminderStore';
 import { ReminderItem } from '../types';
-import { requestNotificationPermission, shouldNotifyForReminder, showReminderNotification } from '../utils/notificationUtils';
+import { requestNotificationPermission, shouldNotifyForReminder, showReminderNotification, showNotification } from '../utils/notificationUtils';
 
 // Store active timers
 let reminderCheckInterval: number | null = null;
@@ -12,13 +12,23 @@ let notifiedReminderIds = new Set<string>();
 export async function checkReminders() {
   const reminders = listReminders();
   const now = new Date();
+  
+  console.log(`[ReminderService] Checking ${reminders.length} reminders at ${now.toLocaleTimeString()}`);
 
   // Check if any reminders should be notified
   reminders.forEach(reminder => {
     if (!reminder.completed && !notifiedReminderIds.has(reminder.id)) {
-      if (shouldNotifyForReminder(reminder)) {
-        showReminderNotification(reminder);
-        notifiedReminderIds.add(reminder.id);
+      const shouldNotify = shouldNotifyForReminder(reminder);
+      console.log(`[ReminderService] Reminder "${reminder.text}" due at ${reminder.date} ${reminder.time || ''} - should notify: ${shouldNotify}`);
+      
+      if (shouldNotify) {
+        const notification = showReminderNotification(reminder);
+        if (notification) {
+          console.log(`[ReminderService] Notification sent for reminder: ${reminder.text}`);
+          notifiedReminderIds.add(reminder.id);
+        } else {
+          console.warn(`[ReminderService] Failed to show notification for reminder: ${reminder.text}`);
+        }
       }
     }
   });
@@ -41,15 +51,25 @@ export async function startReminderService() {
   
   if (!permissionGranted) {
     console.warn('Notification permission not granted, reminders will not show notifications');
+  } else {
+    console.log('[ReminderService] Notification permission granted, reminders will show notifications');
+    
+    // Send a test notification to verify they're working
+    showNotification({
+      title: 'Notifications Enabled',
+      body: 'You will now receive reminder notifications',
+      onClick: () => window.focus()
+    });
   }
 
-  // Start reminder checking interval (check every minute)
+  // Start reminder checking interval (check every 30 seconds instead of every minute)
   if (!reminderCheckInterval) {
     // Initial check immediately
     checkReminders();
     
-    // Then check every minute
-    reminderCheckInterval = window.setInterval(checkReminders, 60000);
+    // Then check every 30 seconds (reduced from 60 seconds)
+    reminderCheckInterval = window.setInterval(checkReminders, 30000);
+    console.log('[ReminderService] Reminder service started, checking every 30 seconds');
   }
 }
 
