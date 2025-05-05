@@ -84,11 +84,21 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
       return;
     }
 
+    // Use custom medication name if selected
+    const medicationName = newMedicationName === 'custom' 
+      ? newMedication.trim() 
+      : newMedicationName;
+
+    if (newMedicationName === 'custom' && !medicationName) {
+      alert('Please enter a custom medication name');
+      return;
+    }
+
     const timestamp = new Date(`${newDate}T${newTime}`).toISOString();
     
     const newItem: MedicationItem = {
       id: Date.now(),
-      name: newMedicationName,
+      name: medicationName,
       dose: newDose,
       date: newDate,
       time: newTime,
@@ -114,6 +124,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     setNewDate(getTodayDate());
     setNewTime(getCurrentTime());
     setNewNotes('');
+    setNewMedication('');
   };
 
   // Delete medication record
@@ -179,6 +190,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
                     {med}
                   </option>
                 ))}
+                <option value="custom">Custom medication...</option>
               </select>
               <button
                 onClick={() => setShowMedicationManager(true)}
@@ -188,6 +200,15 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
                 <PlusCircle size={20} />
               </button>
             </div>
+            {newMedicationName === 'custom' && (
+              <input
+                type="text"
+                value={newMedication}
+                onChange={(e) => setNewMedication(e.target.value)}
+                placeholder="Enter medication name"
+                className="w-full mt-2 p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            )}
           </div>
 
           <div>
@@ -287,21 +308,19 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
 
         <h4 className="text-md font-medium mb-2">Last Doses</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {Object.entries(lastDoses).map(([medication, item]) => (
-            <div key={medication} className="bg-gray-50 p-3 rounded-lg border">
-              <div className="font-medium">{medication}</div>
-              {item ? (
+          {Object.entries(lastDoses)
+            .filter(([_, item]) => item !== null) // Only show medications with recorded doses today
+            .map(([medication, item]) => (
+              <div key={medication} className="bg-gray-50 p-3 rounded-lg border">
+                <div className="font-medium">{medication}</div>
                 <div className="text-sm text-gray-600">
                   <div className="flex items-center mt-1">
                     <Clock size={14} className="mr-1" />
-                    Last dose: {item.dose} at {formatTime(item.time)}
+                    Last dose: {item!.dose} at {formatTime(item!.time)}
                   </div>
                 </div>
-              ) : (
-                <div className="text-sm text-gray-500">No doses recorded today</div>
-              )}
-            </div>
-          ))}
+              </div>
+            ))}
         </div>
       </div>
 
@@ -311,7 +330,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
         {todayLogs.length > 0 ? (
           <div className="space-y-3">
             {todayLogs
-              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+              .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) // Changed to ascending order
               .map((item) => (
                 <div key={item.id} className="p-3 border rounded-lg flex justify-between items-start">
                   <div>
