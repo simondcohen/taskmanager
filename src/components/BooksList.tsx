@@ -185,7 +185,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                       </button>
                     </div>
                   </div>
-                ) :
+                ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <input
