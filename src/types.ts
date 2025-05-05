@@ -31,6 +31,7 @@ export interface ReadingItem {
   notes?: string;
   completed: boolean;
   dateAdded: string;
+  category?: string;
 }
 
 export interface BookItem {
@@ -40,6 +41,7 @@ export interface BookItem {
   notes?: string;
   completed: boolean;
   dateAdded: string;
+  category?: string;
 }
 
 export interface EntertainmentItem {
@@ -58,6 +60,7 @@ export interface VideoItem {
   notes?: string;
   completed: boolean;
   dateAdded: string;
+  category?: string;
 }
 
 export interface PodcastItem {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem, MedicationItem } from '../types';
+import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem, MedicationItem, BookItem } from '../types';
 import { X } from 'lucide-react';
 import { listEvents } from '../storage/eventStore';
 import { Category } from './CategoryManager';
@@ -17,6 +17,11 @@ interface DataManagementProps {
   deadlines?: DeadlineItem[];
   medicationItems: MedicationItem[];
   selectedDay: string;
+  todoCategories: Category[];
+  readingCategories: Category[];
+  bookCategories: Category[];
+  videoCategories: Category[];
+  bookItems: BookItem[];
   onImportData: (data: { 
     templateTasks: Task[]; 
     checklists: { [date: string]: Task[] }; 
@@ -24,12 +29,16 @@ interface DataManagementProps {
     deadlines?: DeadlineItem[]; 
     medicationItems?: MedicationItem[];
     readingItems?: ReadingItem[];
+    bookItems?: BookItem[];
     entertainmentItems?: EntertainmentItem[];
     videoItems?: VideoItem[];
     shoppingItems?: ShoppingItem[];
     groceryItems?: GroceryItem[];
     podcastItems?: PodcastItem[];
     todoCategories?: Category[];
+    readingCategories?: Category[];
+    bookCategories?: Category[];
+    videoCategories?: Category[];
   }) => void;
   onResetApp?: () => void;
   onLoadDemo?: () => void;
@@ -50,6 +59,11 @@ export function DataManagement({
   deadlines,
   medicationItems,
   selectedDay,
+  todoCategories,
+  readingCategories,
+  bookCategories,
+  videoCategories,
+  bookItems,
   onImportData,
   onResetApp,
   onLoadDemo,
@@ -66,9 +80,14 @@ export function DataManagement({
       templateTasks,
       checklists,
       todos,
+      todoCategories,
+      readingCategories,
+      bookCategories,
+      videoCategories,
+      readingItems,
+      bookItems,
       groceryItems,
       shoppingItems,
-      readingItems,
       entertainmentItems,
       videoItems,
       podcastItems,

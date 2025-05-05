@@ -215,6 +215,21 @@ function App() {
       { name: "Shopping", color: "#059669" },
       { name: "Health", color: "#D97706" }
     ],
+    readingCategories: [
+      { name: "Technology", color: "#4F46E5" },
+      { name: "News", color: "#DC2626" },
+      { name: "Science", color: "#0891B2" }
+    ],
+    bookCategories: [
+      { name: "Fiction", color: "#7C3AED" },
+      { name: "Non-Fiction", color: "#059669" },
+      { name: "Programming", color: "#2563EB" }
+    ],
+    videoCategories: [
+      { name: "Tutorials", color: "#DB2777" },
+      { name: "Entertainment", color: "#EA580C" },
+      { name: "Education", color: "#65A30D" }
+    ],
     readingItems: [
       {
         id: 1,
@@ -222,7 +237,8 @@ function App() {
         siteName: "TechCrunch",
         description: "Exploring trends in web development for the next decade.",
         completed: false,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Technology"
       },
       {
         id: 2,
@@ -230,7 +246,8 @@ function App() {
         siteName: "React Documentation",
         description: "A comprehensive guide to React hooks and their use cases.",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(today),
+        category: "Technology"
       }
     ],
     bookItems: [
@@ -240,7 +257,8 @@ function App() {
         author: "Andrew Hunt & David Thomas",
         notes: "Software engineering classic",
         completed: false,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Programming"
       },
       {
         id: 2,
@@ -248,7 +266,8 @@ function App() {
         author: "Robert C. Martin",
         notes: "Best practices for writing maintainable code",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(today),
+        category: "Programming"
       }
     ],
     entertainmentItems: [
@@ -274,7 +293,8 @@ function App() {
         title: "Advanced TypeScript Patterns",
         thumbnailUrl: "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
         completed: false,
-        dateAdded: formatDate(today)
+        dateAdded: formatDate(today),
+        category: "Tutorials"
       },
       {
         id: 2,
@@ -282,7 +302,8 @@ function App() {
         title: "React Performance Optimization",
         thumbnailUrl: "https://i.ytimg.com/vi/LXb3EKWsInQ/hqdefault.jpg",
         completed: false,
-        dateAdded: formatDate(yesterday)
+        dateAdded: formatDate(yesterday),
+        category: "Education"
       }
     ],
     shoppingItems: [
@@ -379,6 +400,9 @@ function App() {
   const [reminders, setReminders] = useState<ReminderItem[]>(() => {
     return listReminders();
   });
+  const [readingCategories, setReadingCategories] = useState<Category[]>([]);
+  const [bookCategories, setBookCategories] = useState<Category[]>([]);
+  const [videoCategories, setVideoCategories] = useState<Category[]>([]);
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -418,6 +442,9 @@ function App() {
           
           setTodos(upgradedTodos);
           setTodoCategories(parsedData.todoCategories || []);
+          setReadingCategories(parsedData.readingCategories || []);
+          setBookCategories(parsedData.bookCategories || []);
+          setVideoCategories(parsedData.videoCategories || []);
           setReadingItems(parsedData.readingItems || []);
           setBookItems(parsedData.bookItems || []);
           setEntertainmentItems(parsedData.entertainmentItems || []);
@@ -431,6 +458,9 @@ function App() {
           setChecklists({});
           setTodos([]);
           setTodoCategories([]);
+          setReadingCategories([]);
+          setBookCategories([]);
+          setVideoCategories([]);
           setReadingItems([]);
           setBookItems([]);
           setEntertainmentItems([]);
@@ -446,6 +476,9 @@ function App() {
         setChecklists({});
         setTodos([]);
         setTodoCategories([]);
+        setReadingCategories([]);
+        setBookCategories([]);
+        setVideoCategories([]);
         setReadingItems([]);
         setBookItems([]);
         setEntertainmentItems([]);
@@ -460,6 +493,9 @@ function App() {
       setChecklists(demoData.checklists);
       setTodos(demoData.todos);
       setTodoCategories(demoData.todoCategories || []);
+      setReadingCategories(demoData.readingCategories || []);
+      setBookCategories(demoData.bookCategories || []);
+      setVideoCategories(demoData.videoCategories || []);
       setReadingItems(demoData.readingItems);
       setBookItems(demoData.bookItems);
       setEntertainmentItems(demoData.entertainmentItems);
@@ -478,6 +514,9 @@ function App() {
         checklists,
         todos,
         todoCategories,
+        readingCategories,
+        bookCategories,
+        videoCategories,
         readingItems,
         bookItems,
         entertainmentItems,
@@ -489,7 +528,7 @@ function App() {
       };
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
-  }, [isShowingDemo, templateTasks, checklists, todos, todoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+  }, [isShowingDemo, templateTasks, checklists, todos, todoCategories, readingCategories, bookCategories, videoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
 
   // Save medication items to localStorage when they change
   useEffect(() => {
@@ -612,15 +651,19 @@ function App() {
                     />
                   )}
                   {activeTab === 'reading' && (
-                    <ReadingList
-                      items={readingItems}
-                      onUpdateItems={setReadingItems}
+                    <ReadingList 
+                      items={readingItems} 
+                      onUpdateItems={setReadingItems} 
+                      categories={readingCategories}
+                      onUpdateCategories={setReadingCategories}
                     />
                   )}
                   {activeTab === 'books' && (
-                    <BooksList
-                      items={bookItems}
-                      onUpdateItems={setBookItems}
+                    <BooksList 
+                      items={bookItems} 
+                      onUpdateItems={setBookItems} 
+                      categories={bookCategories}
+                      onUpdateCategories={setBookCategories}
                     />
                   )}
                   {activeTab === 'entertainment' && (
@@ -630,9 +673,11 @@ function App() {
                     />
                   )}
                   {activeTab === 'videos' && (
-                    <VideoList
-                      items={videoItems}
-                      onUpdateItems={setVideoItems}
+                    <VideoList 
+                      items={videoItems} 
+                      onUpdateItems={setVideoItems} 
+                      categories={videoCategories}
+                      onUpdateCategories={setVideoCategories}
                     />
                   )}
                   {activeTab === 'podcasts' && (
@@ -669,6 +714,11 @@ function App() {
                       podcastItems={podcastItems}
                       deadlines={deadlines}
                       medicationItems={medicationItems}
+                      bookItems={bookItems}
+                      todoCategories={todoCategories}
+                      readingCategories={readingCategories}
+                      bookCategories={bookCategories}
+                      videoCategories={videoCategories}
                       selectedDay={selectedDay}
                       onImportData={data => {
                         if (data.todos) {
@@ -704,6 +754,9 @@ function App() {
                         if (data.groceryItems) setGroceryItems(data.groceryItems);
                         if (data.podcastItems) setPodcastItems(data.podcastItems);
                         if (data.todoCategories) setTodoCategories(data.todoCategories);
+                        if (data.readingCategories) setReadingCategories(data.readingCategories);
+                        if (data.bookCategories) setBookCategories(data.bookCategories);
+                        if (data.videoCategories) setVideoCategories(data.videoCategories);
                       }}
                       onResetApp={() => {
                         if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
@@ -711,6 +764,9 @@ function App() {
                           setChecklists({});
                           setTodos([]);
                           setTodoCategories([]);
+                          setReadingCategories([]);
+                          setBookCategories([]);
+                          setVideoCategories([]);
                           setReadingItems([]);
                           setBookItems([]);
                           setEntertainmentItems([]);

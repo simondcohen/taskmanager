@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Edit2, X, ExternalLink, Play } from 'lucide-react';
+import { Edit2, X, ExternalLink, Play, Tag } from 'lucide-react';
 import { VideoItem } from '../types';
 import { fetchYoutubeMeta } from '../utils/youtube';
+import { CategoryManager, Category } from './CategoryManager';
 
 interface VideoListProps {
   items: VideoItem[];
   onUpdateItems: (newItems: VideoItem[]) => void;
+  categories: Category[];
+  onUpdateCategories: (newCategories: Category[]) => void;
 }
 
-export function VideoList({ items, onUpdateItems }: VideoListProps) {
+export function VideoList({ items, onUpdateItems, categories, onUpdateCategories }: VideoListProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOption, setSortOption] = useState<'added' | 'alphabetical'>('added');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>(['all']);
   const [editItemId, setEditItemId] = useState<number | null>(null);
 
   const [newUrl, setNewUrl] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newThumbnailUrl, setNewThumbnailUrl] = useState('');
   const [newNotes, setNewNotes] = useState('');
+  const [newCategory, setNewCategory] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -24,6 +29,7 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
   const [editTitle, setEditTitle] = useState('');
   const [editThumbnailUrl, setEditThumbnailUrl] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editCategory, setEditCategory] = useState('');
 
   // On component mount, migrate any existing data
   useEffect(() => {
@@ -52,8 +58,16 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
 
   const filteredItems = items
     .filter(item => {
-      if (statusFilter === 'active') return !item.completed;
-      if (statusFilter === 'completed') return item.completed;
+      // First filter by status
+      if (statusFilter === 'active' && item.completed) return false;
+      if (statusFilter === 'completed' && !item.completed) return false;
+      
+      // Then filter by category
+      if (!categoryFilter.includes('all') && 
+          !(item.category && categoryFilter.includes(item.category))) {
+        return false;
+      }
+      
       return true;
     })
     .sort((a, b) => {
@@ -62,6 +76,29 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
       }
       return b.id - a.id;
     });
+
+  // Function to handle multiple category selection
+  const handleCategoryFilterChange = (categoryName: string) => {
+    // If 'all' is clicked, reset to just 'all'
+    if (categoryName === 'all') {
+      setCategoryFilter(['all']);
+      return;
+    }
+
+    // Remove 'all' when selecting specific categories
+    const newFilter = categoryFilter.filter(cat => cat !== 'all');
+    
+    // Toggle the selected category
+    if (newFilter.includes(categoryName)) {
+      // Remove the category if already selected
+      const updatedFilter = newFilter.filter(cat => cat !== categoryName);
+      // If no categories selected, default back to 'all'
+      setCategoryFilter(updatedFilter.length ? updatedFilter : ['all']);
+    } else {
+      // Add the category
+      setCategoryFilter([...newFilter, categoryName]);
+    }
+  };
 
   const handleUrlChange = async (url: string, isEdit = false) => {
     if (!url) return;
@@ -104,15 +141,20 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
       const newItem: VideoItem = {
         id: Date.now(),
         url: newUrl.trim(),
-        title: `YouTube Video (${videoId})`,
-        thumbnailUrl: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-        notes: '',
+        title: newTitle.trim() || `YouTube Video (${videoId})`,
+        thumbnailUrl: newThumbnailUrl || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        notes: newNotes.trim() || '',
+        category: newCategory || undefined,
         completed: false,
         dateAdded: getCurrentDate()
       };
 
       onUpdateItems([...items, newItem]);
       setNewUrl('');
+      setNewTitle('');
+      setNewThumbnailUrl('');
+      setNewNotes('');
+      setNewCategory('');
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add video');
@@ -181,7 +223,49 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="mb-6">
+        <label className="block text-gray-700 text-sm font-medium mb-2">Filter Categories</label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setCategoryFilter(['all'])}
+            className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors ${categoryFilter.includes('all') 
+              ? 'bg-indigo-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
+          >
+            All Categories
+          </button>
+          {categories.map(category => (
+            <button
+              key={category.name}
+              onClick={() => handleCategoryFilterChange(category.name)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-colors ${
+                categoryFilter.includes(category.name)
+                  ? 'text-white' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+              style={categoryFilter.includes(category.name) 
+                ? { backgroundColor: category.color } 
+                : { borderLeftWidth: '4px', borderLeftColor: category.color }}
+            >
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: category.color }}
+              ></div>
+              {category.name}
+            </button>
+          ))}
+        </div>
+        {categories.length === 0 && (
+          <p className="text-sm text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg">No categories available. Create categories below.</p>
+        )}
+      </div>
+
+      <CategoryManager 
+        categories={categories}
+        onUpdateCategories={onUpdateCategories}
+      />
+
+      <div className="space-y-4 mt-6">
         {error && (
           <div className="p-3 bg-red-100 text-red-700 rounded-md mb-4">
             {error}
@@ -196,7 +280,12 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                 <input
                   type="text"
                   value={newUrl}
-                  onChange={(e) => setNewUrl(e.target.value)}
+                  onChange={(e) => {
+                    setNewUrl(e.target.value);
+                    if (e.target.value.trim().startsWith('http')) {
+                      handleUrlChange(e.target.value);
+                    }
+                  }}
                   placeholder="Paste YouTube URL"
                   className="flex-grow p-2 border rounded"
                 />
@@ -208,6 +297,32 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                   {isLoading ? 'Adding...' : 'Add'}
                 </button>
               </div>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Video title (optional, will be auto-filled)"
+                className="w-full p-2 border rounded"
+              />
+              <textarea
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                placeholder="Notes (optional)"
+                className="w-full p-2 border rounded"
+                rows={2}
+              />
+              <select
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="w-full p-2 border rounded"
+              >
+                <option value="">No Category</option>
+                {categories.map(category => (
+                  <option key={category.name} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
               <p className="text-xs text-gray-500">
                 Currently supports YouTube videos. Paste any YouTube video URL to add it to your watch list.
               </p>
@@ -257,22 +372,41 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                         className="w-full p-2 border rounded"
                         rows={2}
                       />
+                      <select
+                        value={editCategory || ''}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        className="w-full p-2 border rounded"
+                      >
+                        <option value="">No Category</option>
+                        {categories.map(category => (
+                          <option key={category.name} value={category.name}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
-                            if (!editUrl.trim() || !editTitle.trim()) {
-                              setError('URL and title are required');
+                            if (!editUrl.trim()) {
+                              setError('Please enter a video URL');
                               return;
                             }
-                            
+
+                            const videoId = extractYouTubeId(editUrl);
+                            if (!videoId) {
+                              setError('Invalid YouTube URL');
+                              return;
+                            }
+
                             const updatedItems = items.map(i => 
                               i.id === item.id 
                                 ? {
                                     ...i,
                                     url: editUrl.trim(),
-                                    title: editTitle.trim(),
-                                    thumbnailUrl: editThumbnailUrl.trim() || i.thumbnailUrl,
-                                    notes: editNotes.trim() || undefined
+                                    title: editTitle.trim() || i.title,
+                                    thumbnailUrl: editThumbnailUrl.trim() || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+                                    notes: editNotes.trim() || undefined,
+                                    category: editCategory || undefined
                                   }
                                 : i
                             );
@@ -281,8 +415,9 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                             setError('');
                           }}
                           className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                          disabled={isLoading}
                         >
-                          Save
+                          {isLoading ? 'Saving...' : 'Save'}
                         </button>
                         <button
                           onClick={() => {
@@ -290,6 +425,7 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                             setError('');
                           }}
                           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                          disabled={isLoading}
                         >
                           Cancel
                         </button>
@@ -323,6 +459,14 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </a>
+                              {item.category && (
+                                <span 
+                                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"
+                                  style={{ backgroundColor: categories.find(c => c.name === item.category)?.color || '#9ca3af' }}
+                                >
+                                  {item.category}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -334,6 +478,7 @@ export function VideoList({ items, onUpdateItems }: VideoListProps) {
                               setEditTitle(item.title);
                               setEditThumbnailUrl(item.thumbnailUrl);
                               setEditNotes(item.notes || '');
+                              setEditCategory(item.category || '');
                             }}
                             className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                           >

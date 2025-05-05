@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Edit2, X, Book } from 'lucide-react';
+import { Edit2, X, Book, Tag } from 'lucide-react';
 import { BookItem } from '../types';
+import { CategoryManager, Category } from './CategoryManager';
 
 interface BooksListProps {
   items: BookItem[];
   onUpdateItems: (newItems: BookItem[]) => void;
+  categories: Category[];
+  onUpdateCategories: (newCategories: Category[]) => void;
 }
 
-export function BooksList({ items, onUpdateItems }: BooksListProps) {
+export function BooksList({ items, onUpdateItems, categories, onUpdateCategories }: BooksListProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [sortOption, setSortOption] = useState<'added' | 'alphabetical'>('added');
+  const [categoryFilter, setCategoryFilter] = useState<string[]>(['all']);
   const [editItemId, setEditItemId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +21,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
   const [editTitle, setEditTitle] = useState('');
   const [editAuthor, setEditAuthor] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [editCategory, setEditCategory] = useState('');
 
   const getCurrentDate = () => {
     const d = new Date();
@@ -28,8 +33,16 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
 
   const filteredItems = items
     .filter(item => {
-      if (statusFilter === 'active') return !item.completed;
-      if (statusFilter === 'completed') return item.completed;
+      // First filter by status
+      if (statusFilter === 'active' && item.completed) return false;
+      if (statusFilter === 'completed' && !item.completed) return false;
+      
+      // Then filter by category
+      if (!categoryFilter.includes('all') && 
+          !(item.category && categoryFilter.includes(item.category))) {
+        return false;
+      }
+      
       return true;
     })
     .sort((a, b) => {
@@ -38,6 +51,29 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
       }
       return b.id - a.id;
     });
+
+  // Function to handle multiple category selection
+  const handleCategoryFilterChange = (categoryName: string) => {
+    // If 'all' is clicked, reset to just 'all'
+    if (categoryName === 'all') {
+      setCategoryFilter(['all']);
+      return;
+    }
+
+    // Remove 'all' when selecting specific categories
+    const newFilter = categoryFilter.filter(cat => cat !== 'all');
+    
+    // Toggle the selected category
+    if (newFilter.includes(categoryName)) {
+      // Remove the category if already selected
+      const updatedFilter = newFilter.filter(cat => cat !== categoryName);
+      // If no categories selected, default back to 'all'
+      setCategoryFilter(updatedFilter.length ? updatedFilter : ['all']);
+    } else {
+      // Add the category
+      setCategoryFilter([...newFilter, categoryName]);
+    }
+  };
 
   const addBook = () => {
     if (!editTitle.trim()) {
@@ -52,6 +88,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
         title: editTitle.trim(),
         author: editAuthor.trim() || undefined,
         notes: editNotes.trim() || undefined,
+        category: editCategory || undefined,
         completed: false,
         dateAdded: getCurrentDate()
       };
@@ -60,6 +97,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
       setEditTitle('');
       setEditAuthor('');
       setEditNotes('');
+      setEditCategory('');
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add book');
@@ -99,7 +137,49 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="mb-6">
+        <label className="block text-gray-700 text-sm font-medium mb-2">Filter Categories</label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setCategoryFilter(['all'])}
+            className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors ${categoryFilter.includes('all') 
+              ? 'bg-indigo-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'}`}
+          >
+            All Categories
+          </button>
+          {categories.map(category => (
+            <button
+              key={category.name}
+              onClick={() => handleCategoryFilterChange(category.name)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2 transition-colors ${
+                categoryFilter.includes(category.name)
+                  ? 'text-white' 
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+              }`}
+              style={categoryFilter.includes(category.name) 
+                ? { backgroundColor: category.color } 
+                : { borderLeftWidth: '4px', borderLeftColor: category.color }}
+            >
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: category.color }}
+              ></div>
+              {category.name}
+            </button>
+          ))}
+        </div>
+        {categories.length === 0 && (
+          <p className="text-sm text-gray-500 mt-2 p-3 bg-gray-50 rounded-lg">No categories available. Create categories below.</p>
+        )}
+      </div>
+
+      <CategoryManager 
+        categories={categories}
+        onUpdateCategories={onUpdateCategories}
+      />
+
+      <div className="space-y-4 mt-6">
         {error && (
           <div className="p-3 bg-red-100 text-red-700 rounded-md">
             {error}
@@ -142,6 +222,18 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                       className="w-full p-2 border rounded"
                       rows={2}
                     />
+                    <select
+                      value={editCategory || ''}
+                      onChange={(e) => setEditCategory(e.target.value)}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="">No Category</option>
+                      {categories.map(category => (
+                        <option key={category.name} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -157,7 +249,8 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                                     ...i,
                                     title: editTitle.trim(),
                                     author: editAuthor.trim() || undefined,
-                                    notes: editNotes.trim() || undefined
+                                    notes: editNotes.trim() || undefined,
+                                    category: editCategory || undefined
                                   }
                                 : i
                             );
@@ -185,7 +278,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                       </button>
                     </div>
                   </div>
-                ) : (
+                ) :
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <input
@@ -204,6 +297,14 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                       <div className={item.completed ? 'line-through text-gray-400' : ''}>
                         <div className="font-medium flex items-center gap-2">
                           {item.title} <Book className="w-4 h-4 text-indigo-600" />
+                          {item.category && (
+                            <span 
+                              className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white"
+                              style={{ backgroundColor: categories.find(c => c.name === item.category)?.color || '#9ca3af' }}
+                            >
+                              {item.category}
+                            </span>
+                          )}
                         </div>
                         {item.author && (
                           <div className="text-sm text-gray-600">
@@ -224,6 +325,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                           setEditTitle(item.title);
                           setEditAuthor(item.author || '');
                           setEditNotes(item.notes || '');
+                          setEditCategory(item.category || '');
                           setError('');
                         }}
                         className="p-1 text-blue-600 hover:bg-blue-50 rounded"
@@ -242,7 +344,7 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
                       </button>
                     </div>
                   </div>
-                )}
+                }
               </li>
             ))}
           </ul>
@@ -272,6 +374,18 @@ export function BooksList({ items, onUpdateItems }: BooksListProps) {
               className="w-full p-2 border rounded"
               rows={2}
             />
+            <select
+              value={editCategory}
+              onChange={(e) => setEditCategory(e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              <option value="">No Category</option>
+              {categories.map(category => (
+                <option key={category.name} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
           <button
             onClick={addBook}
