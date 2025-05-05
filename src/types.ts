@@ -33,6 +33,15 @@ export interface ReadingItem {
   dateAdded: string;
 }
 
+export interface BookItem {
+  id: number;
+  title: string;
+  author?: string;
+  notes?: string;
+  completed: boolean;
+  dateAdded: string;
+}
+
 export interface EntertainmentItem {
   id: number;
   title: string;
@@ -112,7 +121,21 @@ export interface ReminderItem {
   notes?: string;
 }
 
-export type Tab = 'daily' | 'todos' | 'data' | 'reading' | 'entertainment' | 'videos' | 'shopping' | 'grocery' | 'podcasts' | 'deadlines' | 'calendar' | 'medications' | 'reminders';
+export type Tab = 
+  | 'daily' 
+  | 'todos' 
+  | 'data' 
+  | 'reading' 
+  | 'entertainment' 
+  | 'videos' 
+  | 'shopping'
+  | 'grocery'
+  | 'podcasts'
+  | 'deadlines'
+  | 'medications'
+  | 'calendar'
+  | 'reminders'
+  | 'books';
 
 export interface CalendarDay {
   day: number;

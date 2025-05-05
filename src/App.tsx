@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
-import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill } from 'lucide-react';
+import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { TodoList } from './components/TodoList';
 import { DataManagement } from './components/DataManagement';
@@ -12,8 +12,9 @@ import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
+import { BooksList } from './components/BooksList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
 import { RemindersList } from './components/RemindersList';
 import { listReminders, upsertReminder, deleteReminder } from './storage/reminderStore';
@@ -39,6 +40,7 @@ const tabGroups = [
       { id: 'grocery', label: 'Grocery List', icon: Apple },
       { id: 'shopping', label: 'Shopping List', icon: ShoppingBag },
       { id: 'reading', label: 'Articles', icon: Book },
+      { id: 'books', label: 'Books', icon: BookOpen },
       { id: 'entertainment', label: 'Movies & TV', icon: Film },
       { id: 'videos', label: 'Videos', icon: Video },
       { id: 'podcasts', label: 'Podcasts', icon: Headphones },
@@ -231,6 +233,24 @@ function App() {
         dateAdded: formatDate(today)
       }
     ],
+    bookItems: [
+      {
+        id: 1,
+        title: "The Pragmatic Programmer",
+        author: "Andrew Hunt & David Thomas",
+        notes: "Software engineering classic",
+        completed: false,
+        dateAdded: formatDate(yesterday)
+      },
+      {
+        id: 2,
+        title: "Clean Code",
+        author: "Robert C. Martin",
+        notes: "Best practices for writing maintainable code",
+        completed: false,
+        dateAdded: formatDate(today)
+      }
+    ],
     entertainmentItems: [
       {
         id: 1,
@@ -344,6 +364,7 @@ function App() {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [todoCategories, setTodoCategories] = useState<Category[]>([]);
   const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
+  const [bookItems, setBookItems] = useState<BookItem[]>([]);
   const [entertainmentItems, setEntertainmentItems] = useState<EntertainmentItem[]>([]);
   const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
@@ -398,6 +419,7 @@ function App() {
           setTodos(upgradedTodos);
           setTodoCategories(parsedData.todoCategories || []);
           setReadingItems(parsedData.readingItems || []);
+          setBookItems(parsedData.bookItems || []);
           setEntertainmentItems(parsedData.entertainmentItems || []);
           setVideoItems(parsedData.videoItems || []);
           setShoppingItems(parsedData.shoppingItems || []);
@@ -410,6 +432,7 @@ function App() {
           setTodos([]);
           setTodoCategories([]);
           setReadingItems([]);
+          setBookItems([]);
           setEntertainmentItems([]);
           setVideoItems([]);
           setShoppingItems([]);
@@ -424,6 +447,7 @@ function App() {
         setTodos([]);
         setTodoCategories([]);
         setReadingItems([]);
+        setBookItems([]);
         setEntertainmentItems([]);
         setVideoItems([]);
         setShoppingItems([]);
@@ -437,6 +461,7 @@ function App() {
       setTodos(demoData.todos);
       setTodoCategories(demoData.todoCategories || []);
       setReadingItems(demoData.readingItems);
+      setBookItems(demoData.bookItems);
       setEntertainmentItems(demoData.entertainmentItems);
       setVideoItems(demoData.videoItems);
       setShoppingItems(demoData.shoppingItems);
@@ -454,6 +479,7 @@ function App() {
         todos,
         todoCategories,
         readingItems,
+        bookItems,
         entertainmentItems,
         videoItems,
         shoppingItems,
@@ -463,7 +489,7 @@ function App() {
       };
       localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
     }
-  }, [isShowingDemo, templateTasks, checklists, todos, todoCategories, readingItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+  }, [isShowingDemo, templateTasks, checklists, todos, todoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
 
   // Save medication items to localStorage when they change
   useEffect(() => {
@@ -591,6 +617,12 @@ function App() {
                       onUpdateItems={setReadingItems}
                     />
                   )}
+                  {activeTab === 'books' && (
+                    <BooksList
+                      items={bookItems}
+                      onUpdateItems={setBookItems}
+                    />
+                  )}
                   {activeTab === 'entertainment' && (
                     <EntertainmentList
                       items={entertainmentItems}
@@ -665,6 +697,7 @@ function App() {
                         if (data.checklists) setChecklists(data.checklists);
                         if (data.medicationItems) setMedicationItems(data.medicationItems);
                         if (data.readingItems) setReadingItems(data.readingItems);
+                        if (data.bookItems) setBookItems(data.bookItems);
                         if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
                         if (data.videoItems) setVideoItems(data.videoItems);
                         if (data.shoppingItems) setShoppingItems(data.shoppingItems);
@@ -679,6 +712,7 @@ function App() {
                           setTodos([]);
                           setTodoCategories([]);
                           setReadingItems([]);
+                          setBookItems([]);
                           setEntertainmentItems([]);
                           setVideoItems([]);
                           setShoppingItems([]);
