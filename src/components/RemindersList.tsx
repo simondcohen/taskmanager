@@ -27,6 +27,7 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFields, setEditFields] = useState<Partial<ReminderItem>>({});
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     'Notification' in window && Notification.permission === 'granted'
   );
@@ -167,8 +168,11 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
     onUpdateReminders([testReminder, ...reminders]);
   };
 
+  // Filter reminders to show only incomplete ones unless showCompleted is true
+  const visibleReminders = reminders.filter(r => showCompleted || !r.completed);
+
   // Group reminders by date
-  const groupedReminders = reminders.reduce<{[key: string]: ReminderItem[]}>((acc, reminder) => {
+  const groupedReminders = visibleReminders.reduce<{[key: string]: ReminderItem[]}>((acc, reminder) => {
     const key = reminder.date;
     if (!acc[key]) {
       acc[key] = [];
@@ -181,6 +185,9 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
   const sortedDates = Object.keys(groupedReminders).sort((a, b) => {
     return new Date(a).getTime() - new Date(b).getTime();
   });
+
+  // Count completed reminders for the toggle button
+  const completedCount = reminders.filter(r => r.completed).length;
 
   return (
     <section className="max-w-4xl mx-auto">
@@ -204,6 +211,18 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
             <AlertTriangle className="w-4 h-4" />
             Test Notification
           </button>
+          {completedCount > 0 && (
+            <button
+              className={`px-4 py-2 rounded-full flex items-center gap-1 shadow-sm transition-colors ${
+                showCompleted 
+                  ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
+              onClick={() => setShowCompleted(!showCompleted)}
+            >
+              {showCompleted ? 'Hide Completed' : `Show Completed (${completedCount})`}
+            </button>
+          )}
           <button
             className="bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 flex items-center gap-1 shadow-sm transition-colors"
             onClick={() => setShowAddForm(!showAddForm)}
