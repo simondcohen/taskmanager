@@ -109,16 +109,54 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
   };
 
   const handleToggleComplete = (id: string) => {
-    const updatedReminders = reminders.map(r =>
-      r.id === id ? { ...r, completed: !r.completed, completedAt: !r.completed ? new Date().toISOString() : null } : r
+    const reminder = reminders.find(r => r.id === id);
+    if (!reminder) return;
+    
+    const isCompleting = !reminder.completed;
+    
+    // Create a copy of the reminders list to modify
+    let updatedReminders = [...reminders];
+    
+    // Update the current reminder's completion status
+    updatedReminders = updatedReminders.map(r =>
+      r.id === id ? { ...r, completed: isCompleting, completedAt: isCompleting ? new Date().toISOString() : null } : r
     );
+    
+    // If we're completing a recurring reminder, create the next occurrence
+    if (isCompleting && reminder.recurrence && reminder.recurrence !== 'none') {
+      // Calculate the next date based on the recurrence pattern
+      const nextDate = dateUtils.getNextRecurringDate(reminder.date, reminder.recurrence);
+      
+      console.log(`[Recurring] Completed reminder "${reminder.text}" with ${reminder.recurrence} recurrence`);
+      console.log(`[Recurring] Creating next occurrence on ${nextDate}`);
+      
+      // Create a new reminder for the next occurrence
+      const nextReminder: ReminderItem = {
+        id: crypto.randomUUID(),
+        text: reminder.text,
+        date: nextDate,
+        time: reminder.time,
+        recurrence: reminder.recurrence,
+        completed: false,
+        completedAt: null,
+        notes: reminder.notes,
+      };
+      
+      // Add the new reminder to the list
+      updatedReminders = [nextReminder, ...updatedReminders];
+      
+      // Also reset notification tracking for the new recurring reminder
+      handleReminderUpdated(nextReminder);
+      console.log(`[Recurring] Created new reminder with ID: ${nextReminder.id}`);
+    }
+    
+    // Update the reminders list
     onUpdateReminders(updatedReminders);
     
-    // Update notification state when a reminder is completed
-    const reminder = updatedReminders.find(r => r.id === id);
-    if (reminder && reminder.completed) {
+    // Update notification state for the original reminder
+    if (isCompleting) {
       handleReminderCompleted(id);
-    } else if (reminder && !reminder.completed) {
+    } else {
       // Reset notification state if uncompleted
       handleReminderUpdated(reminder);
     }

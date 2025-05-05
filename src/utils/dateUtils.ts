@@ -56,5 +56,38 @@ export const dateUtils = {
     const minutes = String(date.getMinutes()).padStart(2, '0');
     
     return `${year}-${month}-${day}T${hours}:${minutes}`;
+  },
+  
+  /**
+   * Calculate the next date for a recurring reminder
+   * @param currentDate The current date of the reminder (YYYY-MM-DD)
+   * @param recurrence The recurrence pattern
+   * @returns The next date as a string in YYYY-MM-DD format
+   */
+  getNextRecurringDate: (currentDate: string, recurrence: string): string => {
+    const date = dateUtils.parseDate(currentDate);
+    
+    switch (recurrence) {
+      case 'daily':
+        return dateUtils.formatDate(dateUtils.addDays(date, 1));
+        
+      case 'weekly':
+        return dateUtils.formatDate(dateUtils.addDays(date, 7));
+        
+      case 'monthly': {
+        const nextMonth = new Date(date);
+        nextMonth.setMonth(date.getMonth() + 1);
+        return dateUtils.formatDate(nextMonth);
+      }
+        
+      case 'yearly': {
+        const nextYear = new Date(date);
+        nextYear.setFullYear(date.getFullYear() + 1);
+        return dateUtils.formatDate(nextYear);
+      }
+        
+      default:
+        return currentDate;
+    }
   }
 };
