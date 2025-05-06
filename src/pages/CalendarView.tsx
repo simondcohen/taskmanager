@@ -249,10 +249,11 @@ export default function CalendarView() {
         eventBackgroundColor="#6366F1"
         eventBorderColor="#4F46E5"
         eventDisplay="block"
-        eventContent={(eventInfo) => (
-          <div className="p-1 overflow-hidden h-full">
-            <div className="text-xs font-medium">{eventInfo.timeText}</div>
-            <div className="font-medium truncate">{eventInfo.event.title}</div>
+        eventMinHeight={40}
+        eventContent={(info) => (
+          <div className="flex flex-col text-xs leading-tight">
+            <span className="font-medium">{info.timeText}</span>
+            <span className="whitespace-normal break-words">{info.event.title}</span>
           </div>
         )}
         dayCellClassNames="hover:bg-indigo-50 transition-colors"

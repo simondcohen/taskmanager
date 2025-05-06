@@ -21,3 +21,9 @@ html, body {
   display: flex;
   flex-direction: column;
 }
+
+/* Allow event titles to wrap */
+.fc .fc-event-title {
+  white-space: normal;
+  overflow: visible;
+}
