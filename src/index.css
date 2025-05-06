@@ -3,3 +3,21 @@
 @tailwind utilities;
 
 @import './styles/calendar.css';
+
+/* Prevent horizontal scrolling */
+html, body, #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Allow vertical scrolling */
+html, body {
+  overflow-y: auto;
+}
+
+/* Ensure the app container fits the viewport */
+#root {
+  display: flex;
+  flex-direction: column;
+}

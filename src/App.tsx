@@ -555,15 +555,15 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
+    <div className="min-h-screen bg-gray-100 w-full overflow-x-hidden">
       <InAppNotifications 
         activeReminders={activeInAppReminders}
         onMarkComplete={handleCompleteReminder}
         onDismiss={dismissInAppNotification}
       />
       
-      <div className={`transition-all duration-300 ease-in-out ${activeInAppReminders.length > 0 ? 'pl-12 md:pl-16' : ''}`}>
-        <div className="max-w-3xl mx-auto">
+      <div className={`transition-all duration-300 ease-in-out ${activeInAppReminders.length > 0 ? 'pl-12 md:pl-16' : ''} w-full px-4`}>
+        <div className="max-w-3xl mx-auto w-full">
           <header className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <h1 className="text-4xl font-bold text-indigo-600">Task Manager</h1>
@@ -576,8 +576,8 @@ function App() {
               </button>
             </div>
 
-            <nav className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="flex flex-col sm:flex-row">
+            <nav className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="flex flex-col sm:flex-row w-full">
                 {tabGroups.map((group, groupIndex) => (
                   <div
                     key={group.name}
@@ -601,7 +601,7 @@ function App() {
                           >
                             <Icon className="w-5 h-5 flex-shrink-0" />
                             {!isCompactView && (
-                              <span className="ml-3">{tab.label}</span>
+                              <span className="ml-3 truncate">{tab.label}</span>
                             )}
                           </button>
                         );
@@ -613,10 +613,10 @@ function App() {
             </nav>
           </header>
           
-          <main>
+          <main className="w-full overflow-x-hidden">
             <Routes>
               <Route path="/" element={
-                <div className={`${isCompactView ? 'max-h-screen' : ''}`}>
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
                   {activeTab === 'daily' && (
                     <DailyChecklist
                       templateTasks={templateTasks}
@@ -743,6 +743,45 @@ function App() {
                           });
                         }
 
+                        // Handle reminders if they exist in the imported data
+                        if (data.reminders && Array.isArray(data.reminders)) {
+                          // Get existing reminders from localStorage
+                          const existingReminders = JSON.parse(
+                            localStorage.getItem('reminders') || '[]'
+                          );
+                          
+                          // Create a map of existing reminders for easy lookup
+                          const remindersMap = new Map(
+                            existingReminders.map((r: any) => [r.id, r])
+                          );
+                          
+                          // Merge new reminders, updating existing ones or adding new ones
+                          data.reminders.forEach((reminder: any) => {
+                            if (reminder.id && remindersMap.has(reminder.id)) {
+                              const existingReminder = remindersMap.get(reminder.id);
+                              if (existingReminder) {
+                                remindersMap.set(reminder.id, {
+                                  ...existingReminder,
+                                  ...reminder
+                                });
+                              }
+                            } else {
+                              // Ensure the reminder has an ID
+                              const newReminder = {
+                                ...reminder,
+                                id: reminder.id || `reminder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+                              };
+                              remindersMap.set(newReminder.id, newReminder);
+                            }
+                          });
+                          
+                          // Save updated reminders to localStorage
+                          localStorage.setItem(
+                            'reminders',
+                            JSON.stringify(Array.from(remindersMap.values()))
+                          );
+                        }
+
                         if (data.templateTasks) setTemplateTasks(data.templateTasks);
                         if (data.checklists) setChecklists(data.checklists);
                         if (data.medicationItems) setMedicationItems(data.medicationItems);
@@ -753,6 +792,8 @@ function App() {
                         if (data.shoppingItems) setShoppingItems(data.shoppingItems);
                         if (data.groceryItems) setGroceryItems(data.groceryItems);
                         if (data.podcastItems) setPodcastItems(data.podcastItems);
+                        
+                        // Handle category imports
                         if (data.todoCategories) setTodoCategories(data.todoCategories);
                         if (data.readingCategories) setReadingCategories(data.readingCategories);
                         if (data.bookCategories) setBookCategories(data.bookCategories);
