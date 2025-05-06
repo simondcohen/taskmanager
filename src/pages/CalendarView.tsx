@@ -54,24 +54,13 @@ export default function CalendarView() {
     }
   };
 
-  const handleDateClick = (info: any) => {
-    // Parse the clicked date, maintaining local timezone
-    const clickedDate = new Date(info.dateStr);
-    
-    // Format date in YYYY-MM-DD format
-    const dateStr = clickedDate.toISOString().split('T')[0];
-    
-    // Set start time to current time, rounded to nearest hour
-    const startTime = new Date();
-    startTime.setHours(startTime.getHours() + 1, 0, 0, 0);
-    
-    // Set end time to 1 hour after start
-    const endTime = new Date(startTime);
-    endTime.setHours(endTime.getHours() + 1);
+  const handleSelect = (info: any) => {
+    const start = info.start;
+    const end = info.end || new Date(info.start.getTime() + 60*60*1000);
     
     // Format to ISO strings
-    const startTimeStr = dateUtils.formatDateTimeForInput(startTime);
-    const endTimeStr = dateUtils.formatDateTimeForInput(endTime);
+    const startTimeStr = dateUtils.formatDateTimeForInput(start);
+    const endTimeStr = dateUtils.formatDateTimeForInput(end);
     
     setSelectedEvent({
       title: '',
@@ -165,6 +154,39 @@ export default function CalendarView() {
     }
   }
 
+  // Add event handlers for drag and resize
+  const handleEventDrop = (info: any) => {
+    const eventId = info.event.id;
+    const event = events.find(e => e.id === eventId);
+    
+    if (event) {
+      const updatedEvent = {
+        ...event,
+        start_ts: dateUtils.formatDateTimeForInput(info.event.start),
+        end_ts: dateUtils.formatDateTimeForInput(info.event.end || new Date(info.event.start.getTime() + 60*60*1000))
+      };
+      
+      upsertEvent(updatedEvent);
+      loadEvents();
+    }
+  };
+
+  const handleEventResize = (info: any) => {
+    const eventId = info.event.id;
+    const event = events.find(e => e.id === eventId);
+    
+    if (event) {
+      const updatedEvent = {
+        ...event,
+        start_ts: dateUtils.formatDateTimeForInput(info.event.start),
+        end_ts: dateUtils.formatDateTimeForInput(info.event.end)
+      };
+      
+      upsertEvent(updatedEvent);
+      loadEvents();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-6">
@@ -206,7 +228,12 @@ export default function CalendarView() {
           right: 'dayGridMonth,timeGridWeek,timeGridDay'
         }}
         eventClick={handleEventClick}
-        dateClick={handleDateClick}
+        select={handleSelect}
+        selectable={true}
+        slotDuration="00:30:00"
+        editable={true}
+        eventDrop={handleEventDrop}
+        eventResize={handleEventResize}
         eventTimeFormat={{
           hour: '2-digit',
           minute: '2-digit',
@@ -219,7 +246,6 @@ export default function CalendarView() {
         }}
         nowIndicator={true}
         navLinks={true}
-        editable={true}
         eventBackgroundColor="#6366F1"
         eventBorderColor="#4F46E5"
         eventDisplay="block"
