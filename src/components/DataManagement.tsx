@@ -369,7 +369,93 @@ export function DataManagement({
               </div>
               
               <div className="border rounded p-4 h-[500px] overflow-y-auto">
-                <h4 className="font-medium mb-2">JSON Format Documentation</h4>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="font-medium">JSON Format Documentation</h4>
+                  <button
+                    onClick={() => {
+                      const documentationText = `JSON FORMAT DOCUMENTATION
+
+Tasks (todos):
+"todos": [
+  {
+    "id": 1234567890,
+    "text": "Task description",
+    "deadline": "YYYY-MM-DD",     // Optional
+    "time": "HH:MM",              // Optional
+    "completed": false,           // Optional, default: false
+    "completedAt": null,          // Optional, set when completed
+    "dateAdded": "ISO-timestamp", // Required
+    "category": "Category name"   // Optional
+  }
+]
+
+Deadlines:
+"deadlines": [
+  {
+    "id": "unique-string-id",
+    "title": "Deadline title",
+    "dueDate": "YYYY-MM-DD",  // Required
+    "notes": "Optional notes", // Optional
+    "completed": false         // Optional, default: false
+  }
+]
+
+Calendar Events:
+"calendar_events": [
+  {
+    "title": "Event name",
+    "start_ts": "ISO-timestamp", // Required
+    "end_ts": "ISO-timestamp",   // Required
+    "notes": "Additional info",  // Optional
+    "recurrence": ""             // Optional, format: 'weekly:MO,TU,WE' 
+  }
+]
+
+Categories:
+"todoCategories": [  // Also: readingCategories, bookCategories, videoCategories
+  {
+    "id": "unique-id",
+    "name": "Category name",
+    "color": "#RRGGBB"
+  }
+]
+
+Reading Items:
+"readingItems": [
+  {
+    "id": 1234567890,
+    "url": "https://website.com/article", // Optional
+    "title": "Article title",             // Required
+    "siteName": "Website Name",           // Optional
+    "description": "Article description", // Optional
+    "imageUrl": "https://...",            // Optional
+    "notes": "My notes",                  // Optional
+    "completed": false,                   // Required
+    "dateAdded": "ISO-timestamp",         // Required
+    "category": "Category name"           // Optional
+  }
+]
+
+Reminders:
+"reminders": [
+  {
+    "id": "unique-string-id",
+    "text": "Reminder text",
+    "date": "YYYY-MM-DD",              // Required
+    "time": "HH:MM",                    // Optional
+    "recurrence": "none|daily|weekly|monthly|yearly", // Optional
+    "completed": false,                 // Required
+    "completedAt": null,                // Optional
+    "notes": "Additional notes"         // Optional
+  }
+]`;
+                      copyToClipboard(documentationText, "Documentation copied to clipboard!");
+                    }}
+                    className="px-2 py-1 bg-gray-200 text-xs text-gray-800 rounded hover:bg-gray-300 flex items-center"
+                  >
+                    Copy Instructions
+                  </button>
+                </div>
                 <p className="text-sm text-gray-600 mb-3">
                   The JSON data should be an object containing one or more of these arrays:
                 </p>
