@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, PlusCircle, Edit, Trash2, X } from 'lucide-react';
+import { Clock, PlusCircle, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MedicationItem } from '../types';
 
 interface MedicationListProps {
@@ -17,6 +17,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   const [newNotes, setNewNotes] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showMedicationManager, setShowMedicationManager] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
   // Load saved medications from localStorage
   useEffect(() => {
@@ -34,7 +35,10 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   // Helper functions for date and time
   function getTodayDate() {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   function getCurrentTime() {
@@ -51,11 +55,11 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     return timeStr;
   }
 
-  // Get today's logs
-  const todayLogs = items.filter(item => item.date === getTodayDate());
+  // Get selected date logs (instead of just today's logs)
+  const selectedDateLogs = items.filter(item => item.date === selectedDate);
   
-  // Group medications taken today
-  const todayMedications = todayLogs.reduce((acc: {[key: string]: number}, item) => {
+  // Group medications taken on selected date
+  const selectedDateMedications = selectedDateLogs.reduce((acc: {[key: string]: number}, item) => {
     if (!acc[item.name]) {
       acc[item.name] = 0;
     }
@@ -63,9 +67,9 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     return acc;
   }, {});
 
-  // Get the last dose for each medication
+  // Get the last dose for each medication on selected date
   const lastDoses = medications.reduce((acc: {[key: string]: MedicationItem | null}, medication) => {
-    const medicationLogs = items.filter(item => item.name === medication && item.date === getTodayDate());
+    const medicationLogs = items.filter(item => item.name === medication && item.date === selectedDate);
     if (medicationLogs.length) {
       const sorted = [...medicationLogs].sort((a, b) => 
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -76,6 +80,35 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     }
     return acc;
   }, {});
+
+  // Helper to format date for display
+  function formatDateForDisplay(dateStr: string) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  // Navigate to previous day
+  const goToPreviousDay = () => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() - 1);
+    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+  };
+
+  // Navigate to next day
+  const goToNextDay = () => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() + 1);
+    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+  };
+
+  // Go to today
+  const goToToday = () => {
+    setSelectedDate(getTodayDate());
+  };
+
+  // Check if selected date is today
+  const isToday = selectedDate === getTodayDate();
 
   // Add new medication record
   const addMedicationRecord = () => {
@@ -94,7 +127,15 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
       return;
     }
 
-    const timestamp = new Date(`${newDate}T${newTime}`).toISOString();
+    const dateTime = new Date(`${newDate}T${newTime}`);
+    // Create an ISO string but preserve local timezone information
+    const timestamp = new Date(
+      dateTime.getFullYear(),
+      dateTime.getMonth(),
+      dateTime.getDate(),
+      dateTime.getHours(),
+      dateTime.getMinutes()
+    ).toISOString();
     
     const newItem: MedicationItem = {
       id: Date.now(),
@@ -286,30 +327,77 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
         </div>
       </div>
 
-      {/* Today's Summary */}
-      <div className="mb-8">
-        <h3 className="text-lg font-medium mb-4">Today's Summary</h3>
+      {/* Date selector for viewing different days */}
+      <div className="mb-6 flex justify-between items-center border-b pb-4">
+        <div className="flex items-center space-x-2">
+          <button 
+            onClick={goToPreviousDay}
+            className="p-1 rounded-full hover:bg-gray-100"
+            title="Previous day"
+          >
+            <ChevronLeft size={20} />
+          </button>
+          
+          <div className="flex flex-col items-center">
+            <span className="font-medium">{formatDateForDisplay(selectedDate)}</span>
+            {!isToday && (
+              <button 
+                onClick={goToToday}
+                className="text-xs text-indigo-600 hover:underline"
+              >
+                Go to today
+              </button>
+            )}
+          </div>
+          
+          <button 
+            onClick={goToNextDay}
+            className="p-1 rounded-full hover:bg-gray-100"
+            disabled={isToday}
+            title={isToday ? "Cannot go beyond today" : "Next day"}
+            style={{ opacity: isToday ? 0.5 : 1 }}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
         
-        {Object.keys(todayMedications).length > 0 ? (
+        <div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="p-1 border rounded text-sm"
+            max={getTodayDate()}
+          />
+        </div>
+      </div>
+
+      {/* Selected Date Summary (previously Today's Summary) */}
+      <div className="mb-8">
+        <h3 className="text-lg font-medium mb-4">
+          {isToday ? "Today's Summary" : `Summary for ${formatDateForDisplay(selectedDate)}`}
+        </h3>
+        
+        {Object.keys(selectedDateMedications).length > 0 ? (
           <div className="mb-6">
             <h4 className="text-md font-medium mb-2">Total Doses</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {Object.entries(todayMedications).map(([medication, dose]) => (
+              {Object.entries(selectedDateMedications).map(([medication, dose]) => (
                 <div key={medication} className="bg-blue-50 p-3 rounded-lg">
                   <div className="font-medium">{medication}</div>
-                  <div className="text-sm text-gray-600">Total: {dose} doses today</div>
+                  <div className="text-sm text-gray-600">Total: {dose} doses {isToday ? 'today' : 'on this day'}</div>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <p className="text-gray-500 py-2">No medications recorded today.</p>
+          <p className="text-gray-500 py-2">No medications recorded {isToday ? 'today' : 'on this day'}.</p>
         )}
 
         <h4 className="text-md font-medium mb-2">Last Doses</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {Object.entries(lastDoses)
-            .filter(([_, item]) => item !== null) // Only show medications with recorded doses today
+            .filter(([_, item]) => item !== null) // Only show medications with recorded doses
             .map(([medication, item]) => (
               <div key={medication} className="bg-gray-50 p-3 rounded-lg border">
                 <div className="font-medium">{medication}</div>
@@ -324,12 +412,14 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
         </div>
       </div>
 
-      {/* Today's Records */}
+      {/* Selected Date Records (previously Today's Records) */}
       <div>
-        <h3 className="text-lg font-medium mb-4">Today's Records</h3>
-        {todayLogs.length > 0 ? (
+        <h3 className="text-lg font-medium mb-4">
+          {isToday ? "Today's Records" : `Records for ${formatDateForDisplay(selectedDate)}`}
+        </h3>
+        {selectedDateLogs.length > 0 ? (
           <div className="space-y-3">
-            {todayLogs
+            {selectedDateLogs
               .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) // Changed to ascending order
               .map((item) => (
                 <div key={item.id} className="p-3 border rounded-lg flex justify-between items-start">
@@ -364,7 +454,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
               ))}
           </div>
         ) : (
-          <p className="text-gray-500 py-4">No medications recorded today.</p>
+          <p className="text-gray-500 py-4">No medications recorded {isToday ? 'today' : 'on this day'}.</p>
         )}
       </div>
 

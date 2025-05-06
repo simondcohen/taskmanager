@@ -231,7 +231,7 @@ export function forceTestNotification() {
   const testReminder: ReminderItem = {
     id: `test-${Date.now()}`,
     text: "Test Reminder",
-    date: now.toISOString().split('T')[0],
+    date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
     time: now.toTimeString().slice(0, 5),
     completed: false,
     completedAt: null,
