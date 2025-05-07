@@ -55,6 +55,18 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     return timeStr;
   }
 
+  // Helper to format date for display
+  function formatDateForDisplay(dateStr: string) {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  }
+
+  // Helper to format date for state
+  function formatDateForState(date: Date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
   // Get selected date logs (instead of just today's logs)
   const selectedDateLogs = items.filter(item => item.date === selectedDate);
   
@@ -81,29 +93,26 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     return acc;
   }, {});
 
-  // Helper to format date for display
-  function formatDateForDisplay(dateStr: string) {
-    if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  }
-
   // Navigate to previous day
   const goToPreviousDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() - 1);
-    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    setSelectedDate(newDate);
+    const currentDate = new Date(selectedDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+    setSelectedDate(formatDateForState(currentDate));
   };
 
   // Navigate to next day
   const goToNextDay = () => {
-    const date = new Date(selectedDate);
-    date.setDate(date.getDate() + 1);
-    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    const currentDate = new Date(selectedDate);
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(currentDate.getDate() + 1);
+    
     // Only allow navigation to today or past dates
-    if (newDate <= getTodayDate()) {
-      setSelectedDate(newDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    nextDate.setHours(0, 0, 0, 0);
+    
+    if (nextDate <= today) {
+      setSelectedDate(formatDateForState(nextDate));
     }
   };
 
