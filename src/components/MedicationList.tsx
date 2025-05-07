@@ -92,14 +92,19 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   const goToPreviousDay = () => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() - 1);
-    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    setSelectedDate(newDate);
   };
 
   // Navigate to next day
   const goToNextDay = () => {
     const date = new Date(selectedDate);
     date.setDate(date.getDate() + 1);
-    setSelectedDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+    const newDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    // Only allow navigation to today or past dates
+    if (newDate <= getTodayDate()) {
+      setSelectedDate(newDate);
+    }
   };
 
   // Go to today
