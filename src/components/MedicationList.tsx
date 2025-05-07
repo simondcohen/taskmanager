@@ -33,6 +33,11 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   }, []);
 
   // Helper functions for date and time
+  function parseLocalDate(dateStr: string) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d); // local midnight
+  }
+
   function getTodayDate() {
     const today = new Date();
     const year = today.getFullYear();
@@ -95,14 +100,14 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
 
   // Navigate to previous day
   const goToPreviousDay = () => {
-    const currentDate = new Date(selectedDate);
+    const currentDate = parseLocalDate(selectedDate);
     currentDate.setDate(currentDate.getDate() - 1);
     setSelectedDate(formatDateForState(currentDate));
   };
 
   // Navigate to next day
   const goToNextDay = () => {
-    const currentDate = new Date(selectedDate);
+    const currentDate = parseLocalDate(selectedDate);
     const nextDate = new Date(currentDate);
     nextDate.setDate(currentDate.getDate() + 1);
     
