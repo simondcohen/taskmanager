@@ -362,7 +362,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
             {!isToday && (
               <button 
                 onClick={goToToday}
-                className="text-xs text-indigo-600 hover:underline"
+                className="text-sm text-indigo-600 hover:text-indigo-800 hover:underline mt-1 px-2 py-1 rounded hover:bg-indigo-50"
               >
                 Go to today
               </button>
