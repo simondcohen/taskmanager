@@ -176,9 +176,25 @@ export function DailyChecklist({
       return task;
     });
     
+    // Sort the tasks to move completed ones to the bottom
+    const sortedTasks = [...updatedTasks].sort((a, b) => {
+      // First check for completed status
+      if (a.completed !== b.completed) {
+        return a.completed ? 1 : -1; // Move completed to the bottom
+      }
+      
+      // Then check for not-completed status (put at the bottom but above completed)
+      if (a.notCompleted !== b.notCompleted) {
+        return a.notCompleted ? 1 : -1;
+      }
+      
+      // Keep original order for the rest
+      return 0;
+    });
+    
     onUpdateChecklists({
       ...checklists,
-      [dateString]: updatedTasks
+      [dateString]: sortedTasks
     });
   };
 
