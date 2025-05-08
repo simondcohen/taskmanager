@@ -19,6 +19,7 @@ export interface TodoItem {
   completedAt: string | null;
   dateAdded: string;
   category?: string;
+  parentCategory?: 'work' | 'personal';
 }
 
 export interface ReadingItem {
@@ -164,4 +165,10 @@ export interface EventItem {
   end_ts: string; // ISO 8601 string
   notes?: string;
   recurrence?: string; // '' or 'weekly:MO,TU'
+}
+
+export interface Category {
+  name: string;
+  color: string;
+  parentCategory: 'work' | 'personal';
 }

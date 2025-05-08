@@ -210,25 +210,25 @@ function App() {
       }
     ],
     todoCategories: [
-      { name: "Work", color: "#4F46E5" },
-      { name: "Personal", color: "#0891B2" },
-      { name: "Shopping", color: "#059669" },
-      { name: "Health", color: "#D97706" }
+      { name: "Work", color: "#4F46E5", parentCategory: "work" },
+      { name: "Personal", color: "#0891B2", parentCategory: "personal" },
+      { name: "Shopping", color: "#059669", parentCategory: "personal" },
+      { name: "Health", color: "#D97706", parentCategory: "personal" }
     ],
     readingCategories: [
-      { name: "Technology", color: "#4F46E5" },
-      { name: "News", color: "#DC2626" },
-      { name: "Science", color: "#0891B2" }
+      { name: "Technology", color: "#4F46E5", parentCategory: "work" },
+      { name: "News", color: "#DC2626", parentCategory: "personal" },
+      { name: "Science", color: "#0891B2", parentCategory: "work" }
     ],
     bookCategories: [
-      { name: "Fiction", color: "#7C3AED" },
-      { name: "Non-Fiction", color: "#059669" },
-      { name: "Programming", color: "#2563EB" }
+      { name: "Fiction", color: "#7C3AED", parentCategory: "personal" },
+      { name: "Non-Fiction", color: "#059669", parentCategory: "personal" },
+      { name: "Programming", color: "#2563EB", parentCategory: "work" }
     ],
     videoCategories: [
-      { name: "Tutorials", color: "#DB2777" },
-      { name: "Entertainment", color: "#EA580C" },
-      { name: "Education", color: "#65A30D" }
+      { name: "Tutorials", color: "#DB2777", parentCategory: "work" },
+      { name: "Entertainment", color: "#EA580C", parentCategory: "personal" },
+      { name: "Education", color: "#65A30D", parentCategory: "work" }
     ],
     readingItems: [
       {
@@ -440,11 +440,53 @@ function App() {
             return todo;
           });
           
-          setTodos(upgradedTodos);
-          setTodoCategories(parsedData.todoCategories || []);
-          setReadingCategories(parsedData.readingCategories || []);
-          setBookCategories(parsedData.bookCategories || []);
-          setVideoCategories(parsedData.videoCategories || []);
+          // Update categories to have parentCategory if needed
+          const existingCategories = parsedData.todoCategories || [];
+          const upgradedCategories = existingCategories.map((cat: any) => {
+            if (!cat.parentCategory) {
+              return {
+                ...cat,
+                parentCategory: 'work' // Default to 'work' for existing categories
+              };
+            }
+            return cat;
+          });
+          
+          // Set the updated categories first
+          setTodoCategories(upgradedCategories);
+          
+          // Then update todos to reference parentCategory from their categories
+          const fullyUpgradedTodos = upgradedTodos.map((todo: any) => {
+            if (todo.category && !todo.parentCategory) {
+              const category = upgradedCategories.find((cat: any) => cat.name === todo.category);
+              return {
+                ...todo,
+                parentCategory: category?.parentCategory || 'work' // Default to work if category not found
+              };
+            }
+            return todo;
+          });
+          
+          setTodos(fullyUpgradedTodos);
+          
+          // Update other categories too
+          const upgradeOtherCategories = (categories: any[]) => {
+            return categories.map((cat: any) => {
+              if (!cat.parentCategory) {
+                return {
+                  ...cat,
+                  parentCategory: 'work' // Default to 'work' for existing categories
+                };
+              }
+              return cat;
+            });
+          };
+          
+          setReadingCategories(upgradeOtherCategories(parsedData.readingCategories || []));
+          setBookCategories(upgradeOtherCategories(parsedData.bookCategories || []));
+          setVideoCategories(upgradeOtherCategories(parsedData.videoCategories || []));
+          
+          // Continue with the rest of the loading
           setReadingItems(parsedData.readingItems || []);
           setBookItems(parsedData.bookItems || []);
           setEntertainmentItems(parsedData.entertainmentItems || []);
@@ -489,13 +531,41 @@ function App() {
         setDeadlines([]);
       }
     } else {
+      // For demo data, ensure parent categories are set
+      const upgradeDemoCategories = (categories: any[]) => {
+        return categories.map((cat: any) => {
+          if (!cat.parentCategory) {
+            return {
+              ...cat,
+              parentCategory: 'work' // Default to 'work' for demo categories
+            };
+          }
+          return cat;
+        });
+      };
+      
       setTemplateTasks(demoData.templateTasks);
       setChecklists(demoData.checklists);
-      setTodos(demoData.todos);
-      setTodoCategories(demoData.todoCategories || []);
-      setReadingCategories(demoData.readingCategories || []);
-      setBookCategories(demoData.bookCategories || []);
-      setVideoCategories(demoData.videoCategories || []);
+      
+      // Update todo items to have parent categories
+      const upgradedDemoTodos = demoData.todos.map((todo: any) => {
+        if (!todo.parentCategory) {
+          return {
+            ...todo,
+            parentCategory: 'work' // Default to work for demo todos
+          };
+        }
+        return todo;
+      });
+      setTodos(upgradedDemoTodos);
+      
+      // Update categories to have parent categories
+      setTodoCategories(upgradeDemoCategories(demoData.todoCategories || []));
+      setReadingCategories(upgradeDemoCategories(demoData.readingCategories || []));
+      setBookCategories(upgradeDemoCategories(demoData.bookCategories || []));
+      setVideoCategories(upgradeDemoCategories(demoData.videoCategories || []));
+      
+      // The rest of the demo setup
       setReadingItems(demoData.readingItems);
       setBookItems(demoData.bookItems);
       setEntertainmentItems(demoData.entertainmentItems);

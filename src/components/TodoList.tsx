@@ -14,6 +14,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const [todoStatusFilter, setTodoStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [todoSortOption, setTodoSortOption] = useState<'deadline' | 'deadline-reverse' | 'added' | 'alphabetical' | 'category'>('deadline');
   const [categoryFilter, setCategoryFilter] = useState<string[]>(['all']);
+  const [parentCategoryFilter, setParentCategoryFilter] = useState<'all' | 'work' | 'personal'>('all');
   const [newTodoText, setNewTodoText] = useState('');
   const [newTodoDeadline, setNewTodoDeadline] = useState(getCurrentDate());
   const [newTodoTime, setNewTodoTime] = useState('');
@@ -130,6 +131,13 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     return hoursSinceCompletion >= hideAfterHours;
   }
 
+  // Helper function to get parent category for a todo
+  const getTodoParentCategory = (todo: TodoItem): 'work' | 'personal' | undefined => {
+    if (!todo.category) return undefined;
+    const category = categories.find(cat => cat.name === todo.category);
+    return category ? category.parentCategory : undefined;
+  };
+
   const filteredTodos = todos
     .filter(todo => {
       // First check if completed todos should be hidden
@@ -140,6 +148,12 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       // Then apply status filter
       if (todoStatusFilter === 'active' && todo.completed) return false;
       if (todoStatusFilter === 'completed' && !todo.completed) return false;
+      
+      // Apply parent category filter if it's not "all"
+      if (parentCategoryFilter !== 'all') {
+        const todoParentCategory = getTodoParentCategory(todo);
+        if (todoParentCategory !== parentCategoryFilter) return false;
+      }
       
       // Then apply category filter if needed
       if (!categoryFilter.includes('all') && todo.category && !categoryFilter.includes(todo.category)) return false;
@@ -194,53 +208,53 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       return b.id - a.id; // 'added' sort option, most recent first
     });
 
-  function addTodo() {
-    if (!newTodoText.trim()) {
-      alert('Description is required.');
-      return;
-    }
+  const addTodo = () => {
+    if (!newTodoText.trim()) return;
+    
+    const lastTodoId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) : 0;
     
     const newTodo: TodoItem = {
-      id: Date.now(),
+      id: lastTodoId + 1,
       text: newTodoText.trim(),
       deadline: newTodoDeadline || null,
       time: newTodoTime || null,
       completed: false,
       completedAt: null,
       dateAdded: new Date().toISOString(),
-      category: newTodoCategory || undefined
+      category: newTodoCategory || undefined,
+      parentCategory: newTodoCategory ? 
+        categories.find(cat => cat.name === newTodoCategory)?.parentCategory : 
+        undefined
     };
     
     onUpdateTodos([...todos, newTodo]);
     setNewTodoText('');
+    setNewTodoDeadline(getCurrentDate());
     setNewTodoTime('');
-    // Keep the deadline as the current date
-    // Keep the last used category for convenience
-  }
-
-  function saveEdit() {
-    if (!editText.trim()) {
-      alert('Description is required.');
-      return;
-    }
+    setNewTodoCategory('');
     
-    const newTodos = [...todos];
-    const todoToEdit = filteredTodos[editIndex];
-    const originalIndex = newTodos.findIndex(t => t.id === todoToEdit.id);
-    if (originalIndex !== -1) {
-      newTodos[originalIndex] = {
-        ...todoToEdit,
-        text: editText.trim(),
-        deadline: editDeadline || null,
-        time: editTime || null,
-        category: editCategory || undefined
-      };
-      onUpdateTodos(newTodos);
-    } else {
-      console.error('Could not find todo with ID:', todoToEdit.id);
-    }
+    // Optionally auto-hide the form after adding
+    // setShowAddTodoForm(false);
+  };
+
+  const saveEdit = () => {
+    if (!editText.trim()) return;
+    
+    const updatedTodos = [...todos];
+    updatedTodos[editIndex] = {
+      ...updatedTodos[editIndex],
+      text: editText.trim(),
+      deadline: editDeadline || null,
+      time: editTime || null,
+      category: editCategory || undefined,
+      parentCategory: editCategory ? 
+        categories.find(cat => cat.name === editCategory)?.parentCategory : 
+        undefined
+    };
+    
+    onUpdateTodos(updatedTodos);
     setEditIndex(-1);
-  }
+  };
 
   // Function to handle multiple category selection
   const handleCategoryFilterChange = (categoryName: string) => {
@@ -377,6 +391,34 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         </div>
       </div>
       
+      {/* Parent Category Filter Buttons */}
+      <div className="mb-4 flex gap-2">
+        <button 
+          onClick={() => setParentCategoryFilter('all')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            parentCategoryFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200'
+          }`}
+        >
+          All
+        </button>
+        <button 
+          onClick={() => setParentCategoryFilter('work')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            parentCategoryFilter === 'work' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+          }`}
+        >
+          Work
+        </button>
+        <button 
+          onClick={() => setParentCategoryFilter('personal')}
+          className={`px-4 py-2 rounded-lg text-sm font-medium ${
+            parentCategoryFilter === 'personal' ? 'bg-green-600 text-white' : 'bg-green-100 text-green-800 hover:bg-green-200'
+          }`}
+        >
+          Personal
+        </button>
+      </div>
+      
       {/* New ToDo Form - Now collapsible */}
       {showAddTodoForm && (
         <div className="bg-indigo-50 rounded-lg p-4 mb-6 shadow-sm animate-in slide-in-from-top duration-300">
@@ -423,12 +465,18 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                 onChange={(e) => setNewTodoCategory(e.target.value)}
                 className="w-full p-2 border border-indigo-200 rounded-lg"
               >
-                <option value="">No Category</option>
-                {categories.map(category => (
-                  <option key={category.name} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
+                <option value="">-- Select Category --</option>
+                {categories
+                  .filter(cat => parentCategoryFilter === 'all' || cat.parentCategory === parentCategoryFilter)
+                  .map(category => (
+                    <option 
+                      key={category.name} 
+                      value={category.name}
+                    >
+                      {category.name} ({category.parentCategory})
+                    </option>
+                  ))
+                }
               </select>
             </div>
             <div className="col-span-1 md:col-span-2">
@@ -632,10 +680,13 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                           onChange={(e) => setEditCategory(e.target.value)}
                           className="p-2 border rounded"
                         >
-                          <option value="">No Category</option>
+                          <option value="">-- No Category --</option>
                           {categories.map(category => (
-                            <option key={category.name} value={category.name}>
-                              {category.name}
+                            <option 
+                              key={category.name} 
+                              value={category.name}
+                            >
+                              {category.name} ({category.parentCategory})
                             </option>
                           ))}
                         </select>
