@@ -291,7 +291,19 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         completed: nowCompleted,
         completedAt: nowCompleted ? new Date().toISOString() : null
       };
-      onUpdateTodos(newTodos);
+      
+      // Sort the todos so completed items always go to the bottom
+      // while preserving the current sort order of the list
+      const updatedTodos = [...newTodos];
+      
+      // Extract the current order of todos without the one we just updated
+      const nonCompletedTodos = updatedTodos.filter(t => !t.completed);
+      const completedTodos = updatedTodos.filter(t => t.completed);
+      
+      // Combine the lists with completed items at the bottom
+      const sortedTodos = [...nonCompletedTodos, ...completedTodos];
+      
+      onUpdateTodos(sortedTodos);
     } else {
       console.error('Could not find todo with ID:', todo.id);
     }
