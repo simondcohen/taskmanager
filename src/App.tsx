@@ -13,6 +13,7 @@ import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
+import { Dashboard } from './components/Dashboard';
 import CalendarView from './pages/CalendarView';
 import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
@@ -26,6 +27,7 @@ const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
@@ -687,6 +689,9 @@ function App() {
             <Routes>
               <Route path="/" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  {activeTab === 'dashboard' && (
+                    <Dashboard />
+                  )}
                   {activeTab === 'daily' && (
                     <DailyChecklist
                       templateTasks={templateTasks}
