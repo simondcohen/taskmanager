@@ -193,7 +193,7 @@ export function CategoryManager({ categories, onUpdateCategories }: CategoryMana
             </button>
           </div>
           
-          {filteredCategories.length > 0 ?
+          {filteredCategories.length > 0 ? (
             <div className="space-y-2 mb-4">
               {filteredCategories.map((category, index) => {
                 const actualIndex = categories.indexOf(category);
