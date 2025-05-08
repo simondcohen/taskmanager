@@ -27,7 +27,7 @@ const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
+      { id: 'dashboard', label: 'Shortcuts', icon: LayoutGrid },
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
