@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Edit, Plus, ExternalLink, Copy, Check, FileText } from 'lucide-react';
+import { Trash2, Edit, Plus, ExternalLink, Copy, Check, FileText, Link as LinkIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DashboardLink {
   id: string;
@@ -13,6 +13,48 @@ interface TextSnippet {
   content: string;
 }
 
+// Demo data for first-time users
+const demoLinks: DashboardLink[] = [
+  {
+    id: '1',
+    title: 'Google Drive',
+    url: 'https://drive.google.com',
+  },
+  {
+    id: '2',
+    title: 'Gmail',
+    url: 'https://mail.google.com',
+  },
+  {
+    id: '3',
+    title: 'ChatGPT',
+    url: 'https://chat.openai.com',
+  },
+  {
+    id: '4',
+    title: 'GitHub',
+    url: 'https://github.com',
+  },
+];
+
+const demoSnippets: TextSnippet[] = [
+  {
+    id: '1',
+    title: 'Email Template',
+    content: 'Dear [Name],\n\nThank you for reaching out. I appreciate your interest in [topic].\n\nBest regards,\n[Your Name]',
+  },
+  {
+    id: '2',
+    title: 'Meeting Agenda',
+    content: '1. Review previous action items\n2. Project updates\n3. Discussion topics\n4. Action items for next meeting\n5. Next meeting date',
+  },
+  {
+    id: '3',
+    title: 'Weekly Status Update',
+    content: 'This week I completed:\n- Task 1\n- Task 2\n\nNext week I plan to:\n- Task 3\n- Task 4\n\nBlocking issues:\n- None',
+  },
+];
+
 export const Dashboard: React.FC = () => {
   const [links, setLinks] = useState<DashboardLink[]>([]);
   const [snippets, setSnippets] = useState<TextSnippet[]>([]);
@@ -23,18 +65,29 @@ export const Dashboard: React.FC = () => {
   const [editingLink, setEditingLink] = useState<DashboardLink | null>(null);
   const [editingSnippet, setEditingSnippet] = useState<TextSnippet | null>(null);
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'links' | 'snippets'>('links');
+  const [activeForm, setActiveForm] = useState<'link' | 'snippet'>('link');
+  const [isFormVisible, setIsFormVisible] = useState(false);
 
   // Load links from localStorage on component mount
   useEffect(() => {
     const savedLinks = localStorage.getItem('dashboardLinks');
-    if (savedLinks) {
-      setLinks(JSON.parse(savedLinks));
-    }
-    
     const savedSnippets = localStorage.getItem('dashboardSnippets');
-    if (savedSnippets) {
-      setSnippets(JSON.parse(savedSnippets));
+    
+    // If no saved data exists, load demo data
+    if (!savedLinks && !savedSnippets) {
+      setLinks(demoLinks);
+      setSnippets(demoSnippets);
+      localStorage.setItem('dashboardLinks', JSON.stringify(demoLinks));
+      localStorage.setItem('dashboardSnippets', JSON.stringify(demoSnippets));
+    } else {
+      // Otherwise load saved data
+      if (savedLinks) {
+        setLinks(JSON.parse(savedLinks));
+      }
+      
+      if (savedSnippets) {
+        setSnippets(JSON.parse(savedSnippets));
+      }
     }
   }, []);
 
@@ -68,6 +121,7 @@ export const Dashboard: React.FC = () => {
       setLinks([...links, newLink]);
       setNewLinkTitle('');
       setNewLinkUrl('');
+      setIsFormVisible(false);
     }
   };
 
@@ -81,6 +135,7 @@ export const Dashboard: React.FC = () => {
       setSnippets([...snippets, newSnippet]);
       setNewSnippetTitle('');
       setNewSnippetContent('');
+      setIsFormVisible(false);
     }
   };
 
@@ -148,90 +203,114 @@ export const Dashboard: React.FC = () => {
     return url;
   };
 
+  const toggleFormVisibility = () => {
+    setIsFormVisible(!isFormVisible);
+  };
+
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Shortcuts</h2>
-      
-      {/* Tabs */}
-      <div className="flex border-b mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Shortcuts</h2>
         <button
-          className={`py-2 px-4 font-medium ${
-            activeTab === 'links'
-              ? 'border-b-2 border-blue-500 text-blue-500'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('links')}
+          onClick={toggleFormVisibility}
+          className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
         >
-          Links
-        </button>
-        <button
-          className={`py-2 px-4 font-medium ${
-            activeTab === 'snippets'
-              ? 'border-b-2 border-blue-500 text-blue-500'
-              : 'text-gray-500 hover:text-gray-700'
-          }`}
-          onClick={() => setActiveTab('snippets')}
-        >
-          Text Snippets
+          {isFormVisible ? (
+            <>
+              <ChevronUp size={16} /> Hide Form
+            </>
+          ) : (
+            <>
+              <Plus size={16} /> Add New
+            </>
+          )}
         </button>
       </div>
       
-      {/* Add new item form */}
-      {activeTab === 'links' && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-medium mb-3">Add New Link</h3>
-          <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Title"
-              value={newLinkTitle}
-              onChange={(e) => setNewLinkTitle(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
-            <input
-              type="text"
-              placeholder="URL"
-              value={newLinkUrl}
-              onChange={(e) => setNewLinkUrl(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
+      {isFormVisible && (
+        <>
+          {/* Add new item form selector */}
+          <div className="flex border-b mb-6">
             <button
-              onClick={addLink}
-              disabled={!newLinkTitle.trim() || !newLinkUrl.trim()}
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
+              className={`py-2 px-4 font-medium ${
+                activeForm === 'link'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setActiveForm('link')}
             >
-              <Plus size={16} /> Add Link
+              Add Link
+            </button>
+            <button
+              className={`py-2 px-4 font-medium ${
+                activeForm === 'snippet'
+                  ? 'border-b-2 border-blue-500 text-blue-500'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setActiveForm('snippet')}
+            >
+              Add Text Snippet
             </button>
           </div>
-        </div>
-      )}
-      
-      {activeTab === 'snippets' && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-lg font-medium mb-3">Add New Text Snippet</h3>
-          <div className="flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Title"
-              value={newSnippetTitle}
-              onChange={(e) => setNewSnippetTitle(e.target.value)}
-              className="px-3 py-2 border rounded-md"
-            />
-            <textarea
-              placeholder="Content"
-              value={newSnippetContent}
-              onChange={(e) => setNewSnippetContent(e.target.value)}
-              className="px-3 py-2 border rounded-md h-24 resize-y"
-            />
-            <button
-              onClick={addSnippet}
-              disabled={!newSnippetTitle.trim() || !newSnippetContent.trim()}
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
-            >
-              <Plus size={16} /> Add Snippet
-            </button>
-          </div>
-        </div>
+          
+          {/* Add new item form */}
+          {activeForm === 'link' && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-medium mb-3">Add New Link</h3>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newLinkTitle}
+                  onChange={(e) => setNewLinkTitle(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                />
+                <input
+                  type="text"
+                  placeholder="URL"
+                  value={newLinkUrl}
+                  onChange={(e) => setNewLinkUrl(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                />
+                <button
+                  onClick={addLink}
+                  disabled={!newLinkTitle.trim() || !newLinkUrl.trim()}
+                  className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
+                >
+                  <Plus size={16} /> Add Link
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {activeForm === 'snippet' && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-lg font-medium mb-3">Add New Text Snippet</h3>
+              <div className="flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={newSnippetTitle}
+                  onChange={(e) => setNewSnippetTitle(e.target.value)}
+                  className="px-3 py-2 border rounded-md"
+                />
+                <textarea
+                  placeholder="Content"
+                  value={newSnippetContent}
+                  onChange={(e) => setNewSnippetContent(e.target.value)}
+                  className="px-3 py-2 border rounded-md h-24 resize-y"
+                />
+                <button
+                  onClick={addSnippet}
+                  disabled={!newSnippetTitle.trim() || !newSnippetContent.trim()}
+                  className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
+                >
+                  <Plus size={16} /> Add Snippet
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit link modal */}
@@ -313,17 +392,22 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Content grid */}
-      {activeTab === 'links' && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            {links.map((link) => (
+      {/* Combined Content Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+        {/* Display links and snippets */}
+        {[...links.map(item => ({ ...item, type: 'link' })), ...snippets.map(item => ({ ...item, type: 'snippet' }))].map((item) => {
+          if (item.type === 'link') {
+            const link = item as DashboardLink & { type: string };
+            return (
               <div
-                key={link.id}
+                key={`link-${link.id}`}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium">{link.title}</h3>
+                  <div className="flex items-center">
+                    <LinkIcon size={16} className="text-blue-500 mr-2 flex-shrink-0" />
+                    <h3 className="font-medium">{link.title}</h3>
+                  </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => startEditingLink(link)}
@@ -348,27 +432,19 @@ export const Dashboard: React.FC = () => {
                   Open <ExternalLink size={16} />
                 </a>
               </div>
-            ))}
-          </div>
-
-          {links.length === 0 && (
-            <div className="text-center text-gray-500 my-10">
-              <p>No links added yet. Add your first link above.</p>
-            </div>
-          )}
-        </>
-      )}
-      
-      {activeTab === 'snippets' && (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-            {snippets.map((snippet) => (
+            );
+          } else {
+            const snippet = item as TextSnippet & { type: string };
+            return (
               <div
-                key={snippet.id}
+                key={`snippet-${snippet.id}`}
                 className="border rounded-lg p-4 hover:shadow-md transition-shadow flex flex-col"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium">{snippet.title}</h3>
+                  <div className="flex items-center">
+                    <FileText size={16} className="text-green-500 mr-2 flex-shrink-0" />
+                    <h3 className="font-medium">{snippet.title}</h3>
+                  </div>
                   <div className="flex gap-1">
                     <button
                       onClick={() => startEditingSnippet(snippet)}
@@ -400,15 +476,16 @@ export const Dashboard: React.FC = () => {
                   )}
                 </button>
               </div>
-            ))}
-          </div>
+            );
+          }
+        })}
+      </div>
 
-          {snippets.length === 0 && (
-            <div className="text-center text-gray-500 my-10">
-              <p>No text snippets added yet. Add your first snippet above.</p>
-            </div>
-          )}
-        </>
+      {/* Empty state */}
+      {links.length === 0 && snippets.length === 0 && (
+        <div className="text-center text-gray-500 my-10">
+          <p>No shortcuts added yet. Click the "Add New" button to add your first link or text snippet.</p>
+        </div>
       )}
     </div>
   );
