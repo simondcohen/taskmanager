@@ -598,25 +598,6 @@ Reminders:
                 Reset App
               </button>
             )}
-            
-            {(onLoadDemo && onClearDemo) && (
-              <div className="flex gap-4">
-                <button
-                  onClick={onLoadDemo}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                  disabled={isShowingDemo}
-                >
-                  Load Demo Data
-                </button>
-                <button
-                  onClick={onClearDemo}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                  disabled={!isShowingDemo}
-                >
-                  Clear Demo Data
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

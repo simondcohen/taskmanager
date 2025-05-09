@@ -13,48 +13,6 @@ interface TextSnippet {
   content: string;
 }
 
-// Demo data for first-time users
-const demoLinks: ShortcutLink[] = [
-  {
-    id: '1',
-    title: 'Google Drive',
-    url: 'https://drive.google.com',
-  },
-  {
-    id: '2',
-    title: 'Gmail',
-    url: 'https://mail.google.com',
-  },
-  {
-    id: '3',
-    title: 'ChatGPT',
-    url: 'https://chat.openai.com',
-  },
-  {
-    id: '4',
-    title: 'GitHub',
-    url: 'https://github.com',
-  },
-];
-
-const demoSnippets: TextSnippet[] = [
-  {
-    id: '1',
-    title: 'Email Template',
-    content: 'Dear [Name],\n\nThank you for reaching out. I appreciate your interest in [topic].\n\nBest regards,\n[Your Name]',
-  },
-  {
-    id: '2',
-    title: 'Meeting Agenda',
-    content: '1. Review previous action items\n2. Project updates\n3. Discussion topics\n4. Action items for next meeting\n5. Next meeting date',
-  },
-  {
-    id: '3',
-    title: 'Weekly Status Update',
-    content: 'This week I completed:\n- Task 1\n- Task 2\n\nNext week I plan to:\n- Task 3\n- Task 4\n\nBlocking issues:\n- None',
-  },
-];
-
 export const Shortcuts: React.FC = () => {
   const [links, setLinks] = useState<ShortcutLink[]>([]);
   const [snippets, setSnippets] = useState<TextSnippet[]>([]);
@@ -73,21 +31,12 @@ export const Shortcuts: React.FC = () => {
     const savedLinks = localStorage.getItem('shortcutsLinks');
     const savedSnippets = localStorage.getItem('shortcutsSnippets');
     
-    // If no saved data exists, load demo data
-    if (!savedLinks && !savedSnippets) {
-      setLinks(demoLinks);
-      setSnippets(demoSnippets);
-      localStorage.setItem('shortcutsLinks', JSON.stringify(demoLinks));
-      localStorage.setItem('shortcutsSnippets', JSON.stringify(demoSnippets));
-    } else {
-      // Otherwise load saved data
-      if (savedLinks) {
-        setLinks(JSON.parse(savedLinks));
-      }
-      
-      if (savedSnippets) {
-        setSnippets(JSON.parse(savedSnippets));
-      }
+    if (savedLinks) {
+      setLinks(JSON.parse(savedLinks));
+    }
+    
+    if (savedSnippets) {
+      setSnippets(JSON.parse(savedSnippets));
     }
   }, []);
 
