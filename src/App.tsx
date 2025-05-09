@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, NavLink } from 'react-router-dom';
+import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { TodoList } from './components/TodoList';
@@ -13,7 +13,7 @@ import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
-import { Dashboard } from './components/Dashboard';
+import { Shortcuts } from './components/Shortcuts';
 import CalendarView from './pages/CalendarView';
 import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
@@ -27,7 +27,7 @@ const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
-      { id: 'dashboard', label: 'Shortcuts', icon: LayoutGrid },
+      { id: 'shortcuts', label: 'Shortcuts', icon: LayoutGrid },
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
@@ -59,11 +59,43 @@ const tabGroups = [
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const savedTab = localStorage.getItem('activeTab');
-    return (savedTab as Tab) || 'daily';
+    return (savedTab as Tab) || 'shortcuts';
   });
   const [isShowingDemo, setIsShowingDemo] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
   const [activeInAppReminders, setActiveInAppReminders] = useState<ReminderItem[]>([]);
+  const location = useLocation();
+  
+  // Update activeTab based on URL path
+  useEffect(() => {
+    const path = location.pathname.substring(1); // Remove the leading '/'
+    const validTab = path as Tab;
+    
+    if (path === '') {
+      setActiveTab('shortcuts');
+    } else if (tabGroups.some(group => 
+      group.tabs.some(tab => tab.id === validTab)
+    )) {
+      setActiveTab(validTab);
+      localStorage.setItem('activeTab', validTab);
+    }
+  }, [location.pathname]);
+  
+  // Update document title when activeTab changes
+  useEffect(() => {
+    // Find the current tab label for the title
+    let tabLabel = "Task Manager";
+    
+    for (const group of tabGroups) {
+      const tab = group.tabs.find(t => t.id === activeTab);
+      if (tab) {
+        tabLabel = `${tab.label} - Task Manager`;
+        break;
+      }
+    }
+    
+    document.title = tabLabel;
+  }, [activeTab]);
   
   // Start the reminder service when the app loads
   useEffect(() => {
@@ -662,20 +694,20 @@ function App() {
                       {group.tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (
-                          <button
+                          <NavLink
                             key={tab.id}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
-                              activeTab === tab.id
+                            to={`/${tab.id}`}
+                            className={({ isActive }) => `w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center ${
+                              isActive
                                 ? 'bg-indigo-100 text-indigo-700'
                                 : 'hover:bg-gray-100'
                             }`}
-                            onClick={() => setActiveTab(tab.id as Tab)}
                           >
                             <Icon className="w-5 h-5 flex-shrink-0" />
                             {!isCompactView && (
                               <span className="ml-3 truncate">{tab.label}</span>
                             )}
-                          </button>
+                          </NavLink>
                         );
                       })}
                     </div>
@@ -689,229 +721,251 @@ function App() {
             <Routes>
               <Route path="/" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  {activeTab === 'dashboard' && (
-                    <Dashboard />
-                  )}
-                  {activeTab === 'daily' && (
-                    <DailyChecklist
-                      templateTasks={templateTasks}
-                      checklists={checklists}
-                      selectedDay={selectedDay}
-                      onUpdateChecklists={setChecklists}
-                      onUpdateTemplate={setTemplateTasks}
-                      onSelectDay={setSelectedDay}
-                    />
-                  )}
-                  {activeTab === 'todos' && (
-                    <TodoList 
-                      todos={todos} 
-                      onUpdateTodos={setTodos} 
-                      categories={todoCategories}
-                      onUpdateCategories={setTodoCategories}
-                    />
-                  )}
-                  {activeTab === 'calendar' && (
-                    <CalendarView />
-                  )}
-                  {activeTab === 'grocery' && (
-                    <GroceryList
-                      items={groceryItems}
-                      onUpdateItems={setGroceryItems}
-                    />
-                  )}
-                  {activeTab === 'shopping' && (
-                    <ShoppingList
-                      items={shoppingItems}
-                      onUpdateItems={setShoppingItems}
-                    />
-                  )}
-                  {activeTab === 'reading' && (
-                    <ReadingList 
-                      items={readingItems} 
-                      onUpdateItems={setReadingItems} 
-                      categories={readingCategories}
-                      onUpdateCategories={setReadingCategories}
-                    />
-                  )}
-                  {activeTab === 'books' && (
-                    <BooksList 
-                      items={bookItems} 
-                      onUpdateItems={setBookItems} 
-                      categories={bookCategories}
-                      onUpdateCategories={setBookCategories}
-                    />
-                  )}
-                  {activeTab === 'entertainment' && (
-                    <EntertainmentList
-                      items={entertainmentItems}
-                      onUpdateItems={setEntertainmentItems}
-                    />
-                  )}
-                  {activeTab === 'videos' && (
-                    <VideoList 
-                      items={videoItems} 
-                      onUpdateItems={setVideoItems} 
-                      categories={videoCategories}
-                      onUpdateCategories={setVideoCategories}
-                    />
-                  )}
-                  {activeTab === 'podcasts' && (
-                    <PodcastList
-                      items={podcastItems}
-                      onUpdateItems={setPodcastItems}
-                    />
-                  )}
-                  {activeTab === 'deadlines' && (
-                    <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
-                  )}
-                  {activeTab === 'medications' && (
-                    <MedicationList
-                      items={medicationItems}
-                      onUpdateItems={setMedicationItems}
-                    />
-                  )}
-                  {activeTab === 'reminders' && (
-                    <RemindersList
-                      reminders={reminders}
-                      onUpdateReminders={setReminders}
-                    />
-                  )}
-                  {activeTab === 'data' && (
-                    <DataManagement
-                      templateTasks={templateTasks}
-                      checklists={checklists}
-                      todos={todos}
-                      groceryItems={groceryItems}
-                      shoppingItems={shoppingItems}
-                      readingItems={readingItems}
-                      entertainmentItems={entertainmentItems}
-                      videoItems={videoItems}
-                      podcastItems={podcastItems}
-                      deadlines={deadlines}
-                      medicationItems={medicationItems}
-                      bookItems={bookItems}
-                      todoCategories={todoCategories}
-                      readingCategories={readingCategories}
-                      bookCategories={bookCategories}
-                      videoCategories={videoCategories}
-                      selectedDay={selectedDay}
-                      onImportData={data => {
-                        if (data.todos) {
-                          setTodos(prev => {
-                            const map = new Map(prev.map(t => [t.id, { ...t }]));
-                            data.todos.forEach(nt => {
-                              if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
-                              else map.set(nt.id, nt);
-                            });
-                            return Array.from(map.values());
-                          });
-                        }
-
-                        if (data.deadlines) {
-                          setDeadlines(prev => {
-                            const map = new Map(prev.map(d => [d.id, { ...d }]));
-                            (data.deadlines || []).forEach((nd: DeadlineItem) => {
-                              if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
-                              else map.set(nd.id, nd);
-                            });
-                            return Array.from(map.values());
-                          });
-                        }
-
-                        // Handle reminders if they exist in the imported data
-                        if (data.reminders && Array.isArray(data.reminders)) {
-                          // Get existing reminders from localStorage
-                          const existingReminders = JSON.parse(
-                            localStorage.getItem('reminders') || '[]'
-                          );
-                          
-                          // Create a map of existing reminders for easy lookup
-                          const remindersMap = new Map(
-                            existingReminders.map((r: any) => [r.id, r])
-                          );
-                          
-                          // Merge new reminders, updating existing ones or adding new ones
-                          data.reminders.forEach((reminder: any) => {
-                            if (reminder.id && remindersMap.has(reminder.id)) {
-                              const existingReminder = remindersMap.get(reminder.id);
-                              if (existingReminder) {
-                                remindersMap.set(reminder.id, {
-                                  ...existingReminder,
-                                  ...reminder
-                                });
-                              }
-                            } else {
-                              // Ensure the reminder has an ID
-                              const newReminder = {
-                                ...reminder,
-                                id: reminder.id || `reminder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-                              };
-                              remindersMap.set(newReminder.id, newReminder);
-                            }
-                          });
-                          
-                          // Save updated reminders to localStorage
-                          localStorage.setItem(
-                            'reminders',
-                            JSON.stringify(Array.from(remindersMap.values()))
-                          );
-                        }
-
-                        if (data.templateTasks) setTemplateTasks(data.templateTasks);
-                        if (data.checklists) setChecklists(data.checklists);
-                        if (data.medicationItems) setMedicationItems(data.medicationItems);
-                        if (data.readingItems) setReadingItems(data.readingItems);
-                        if (data.bookItems) setBookItems(data.bookItems);
-                        if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
-                        if (data.videoItems) setVideoItems(data.videoItems);
-                        if (data.shoppingItems) setShoppingItems(data.shoppingItems);
-                        if (data.groceryItems) setGroceryItems(data.groceryItems);
-                        if (data.podcastItems) setPodcastItems(data.podcastItems);
-                        
-                        // Handle category imports
-                        if (data.todoCategories) setTodoCategories(data.todoCategories);
-                        if (data.readingCategories) setReadingCategories(data.readingCategories);
-                        if (data.bookCategories) setBookCategories(data.bookCategories);
-                        if (data.videoCategories) setVideoCategories(data.videoCategories);
-                      }}
-                      onResetApp={() => {
-                        if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
-                          setTemplateTasks([]);
-                          setChecklists({});
-                          setTodos([]);
-                          setTodoCategories([]);
-                          setReadingCategories([]);
-                          setBookCategories([]);
-                          setVideoCategories([]);
-                          setReadingItems([]);
-                          setBookItems([]);
-                          setEntertainmentItems([]);
-                          setVideoItems([]);
-                          setShoppingItems([]);
-                          setGroceryItems([]);
-                          setPodcastItems([]);
-                          setDeadlines([]);
-                          setMedicationItems([]);
-                          localStorage.removeItem('react-task-manager-app');
-                          localStorage.removeItem('medications');
-                        }
-                      }}
-                      isShowingDemo={isShowingDemo}
-                      onLoadDemo={() => setIsShowingDemo(true)}
-                      onClearDemo={() => setIsShowingDemo(false)}
-                    />
-                  )}
+                  <Shortcuts />
                 </div>
               } />
-              <Route 
-                path="/medications" 
-                element={
-                  <MedicationList 
+              <Route path="/shortcuts" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <Shortcuts />
+                </div>
+              } />
+              <Route path="/daily" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <DailyChecklist
+                    templateTasks={templateTasks}
+                    checklists={checklists}
+                    selectedDay={selectedDay}
+                    onUpdateChecklists={setChecklists}
+                    onUpdateTemplate={setTemplateTasks}
+                    onSelectDay={setSelectedDay}
+                  />
+                </div>
+              } />
+              <Route path="/todos" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <TodoList 
+                    todos={todos} 
+                    onUpdateTodos={setTodos} 
+                    categories={todoCategories}
+                    onUpdateCategories={setTodoCategories}
+                  />
+                </div>
+              } />
+              <Route path="/calendar" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <CalendarView />
+                </div>
+              } />
+              <Route path="/grocery" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <GroceryList
+                    items={groceryItems}
+                    onUpdateItems={setGroceryItems}
+                  />
+                </div>
+              } />
+              <Route path="/shopping" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <ShoppingList
+                    items={shoppingItems}
+                    onUpdateItems={setShoppingItems}
+                  />
+                </div>
+              } />
+              <Route path="/reading" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <ReadingList 
+                    items={readingItems} 
+                    onUpdateItems={setReadingItems} 
+                    categories={readingCategories}
+                    onUpdateCategories={setReadingCategories}
+                  />
+                </div>
+              } />
+              <Route path="/books" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <BooksList 
+                    items={bookItems} 
+                    onUpdateItems={setBookItems} 
+                    categories={bookCategories}
+                    onUpdateCategories={setBookCategories}
+                  />
+                </div>
+              } />
+              <Route path="/entertainment" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <EntertainmentList
+                    items={entertainmentItems}
+                    onUpdateItems={setEntertainmentItems}
+                  />
+                </div>
+              } />
+              <Route path="/videos" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <VideoList 
+                    items={videoItems} 
+                    onUpdateItems={setVideoItems} 
+                    categories={videoCategories}
+                    onUpdateCategories={setVideoCategories}
+                  />
+                </div>
+              } />
+              <Route path="/podcasts" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <PodcastList
+                    items={podcastItems}
+                    onUpdateItems={setPodcastItems}
+                  />
+                </div>
+              } />
+              <Route path="/deadlines" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
+                </div>
+              } />
+              <Route path="/medications" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <MedicationList
                     items={medicationItems}
                     onUpdateItems={setMedicationItems}
                   />
-                } 
-              />
+                </div>
+              } />
+              <Route path="/reminders" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <RemindersList
+                    reminders={reminders}
+                    onUpdateReminders={setReminders}
+                  />
+                </div>
+              } />
+              <Route path="/data" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <DataManagement
+                    templateTasks={templateTasks}
+                    checklists={checklists}
+                    todos={todos}
+                    groceryItems={groceryItems}
+                    shoppingItems={shoppingItems}
+                    readingItems={readingItems}
+                    entertainmentItems={entertainmentItems}
+                    videoItems={videoItems}
+                    podcastItems={podcastItems}
+                    deadlines={deadlines}
+                    medicationItems={medicationItems}
+                    bookItems={bookItems}
+                    todoCategories={todoCategories}
+                    readingCategories={readingCategories}
+                    bookCategories={bookCategories}
+                    videoCategories={videoCategories}
+                    selectedDay={selectedDay}
+                    onImportData={data => {
+                      if (data.todos) {
+                        setTodos(prev => {
+                          const map = new Map(prev.map(t => [t.id, { ...t }]));
+                          data.todos.forEach(nt => {
+                            if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
+                            else map.set(nt.id, nt);
+                          });
+                          return Array.from(map.values());
+                        });
+                      }
+
+                      if (data.deadlines) {
+                        setDeadlines(prev => {
+                          const map = new Map(prev.map(d => [d.id, { ...d }]));
+                          (data.deadlines || []).forEach((nd: DeadlineItem) => {
+                            if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
+                            else map.set(nd.id, nd);
+                          });
+                          return Array.from(map.values());
+                        });
+                      }
+
+                      // Handle reminders if they exist in the imported data
+                      if (data.reminders && Array.isArray(data.reminders)) {
+                        // Get existing reminders from localStorage
+                        const existingReminders = JSON.parse(
+                          localStorage.getItem('reminders') || '[]'
+                        );
+                        
+                        // Create a map of existing reminders for easy lookup
+                        const remindersMap = new Map(
+                          existingReminders.map((r: any) => [r.id, r])
+                        );
+                        
+                        // Merge new reminders, updating existing ones or adding new ones
+                        data.reminders.forEach((reminder: any) => {
+                          if (reminder.id && remindersMap.has(reminder.id)) {
+                            const existingReminder = remindersMap.get(reminder.id);
+                            if (existingReminder) {
+                              remindersMap.set(reminder.id, {
+                                ...existingReminder,
+                                ...reminder
+                              });
+                            }
+                          } else {
+                            // Ensure the reminder has an ID
+                            const newReminder = {
+                              ...reminder,
+                              id: reminder.id || `reminder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
+                            };
+                            remindersMap.set(newReminder.id, newReminder);
+                          }
+                        });
+                        
+                        // Save updated reminders to localStorage
+                        localStorage.setItem(
+                          'reminders',
+                          JSON.stringify(Array.from(remindersMap.values()))
+                        );
+                      }
+
+                      if (data.templateTasks) setTemplateTasks(data.templateTasks);
+                      if (data.checklists) setChecklists(data.checklists);
+                      if (data.medicationItems) setMedicationItems(data.medicationItems);
+                      if (data.readingItems) setReadingItems(data.readingItems);
+                      if (data.bookItems) setBookItems(data.bookItems);
+                      if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
+                      if (data.videoItems) setVideoItems(data.videoItems);
+                      if (data.shoppingItems) setShoppingItems(data.shoppingItems);
+                      if (data.groceryItems) setGroceryItems(data.groceryItems);
+                      if (data.podcastItems) setPodcastItems(data.podcastItems);
+                      
+                      // Handle category imports
+                      if (data.todoCategories) setTodoCategories(data.todoCategories);
+                      if (data.readingCategories) setReadingCategories(data.readingCategories);
+                      if (data.bookCategories) setBookCategories(data.bookCategories);
+                      if (data.videoCategories) setVideoCategories(data.videoCategories);
+                    }}
+                    onResetApp={() => {
+                      if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
+                        setTemplateTasks([]);
+                        setChecklists({});
+                        setTodos([]);
+                        setTodoCategories([]);
+                        setReadingCategories([]);
+                        setBookCategories([]);
+                        setVideoCategories([]);
+                        setReadingItems([]);
+                        setBookItems([]);
+                        setEntertainmentItems([]);
+                        setVideoItems([]);
+                        setShoppingItems([]);
+                        setGroceryItems([]);
+                        setPodcastItems([]);
+                        setDeadlines([]);
+                        setMedicationItems([]);
+                        localStorage.removeItem('react-task-manager-app');
+                        localStorage.removeItem('medications');
+                      }
+                    }}
+                    isShowingDemo={isShowingDemo}
+                    onLoadDemo={() => setIsShowingDemo(true)}
+                    onClearDemo={() => setIsShowingDemo(false)}
+                  />
+                </div>
+              } />
             </Routes>
           </main>
         </div>

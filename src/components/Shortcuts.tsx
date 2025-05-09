@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Edit, Plus, ExternalLink, Copy, Check, FileText, Link as LinkIcon, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface DashboardLink {
+interface ShortcutLink {
   id: string;
   title: string;
   url: string;
@@ -14,7 +14,7 @@ interface TextSnippet {
 }
 
 // Demo data for first-time users
-const demoLinks: DashboardLink[] = [
+const demoLinks: ShortcutLink[] = [
   {
     id: '1',
     title: 'Google Drive',
@@ -55,14 +55,14 @@ const demoSnippets: TextSnippet[] = [
   },
 ];
 
-export const Dashboard: React.FC = () => {
-  const [links, setLinks] = useState<DashboardLink[]>([]);
+export const Shortcuts: React.FC = () => {
+  const [links, setLinks] = useState<ShortcutLink[]>([]);
   const [snippets, setSnippets] = useState<TextSnippet[]>([]);
   const [newLinkTitle, setNewLinkTitle] = useState('');
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newSnippetTitle, setNewSnippetTitle] = useState('');
   const [newSnippetContent, setNewSnippetContent] = useState('');
-  const [editingLink, setEditingLink] = useState<DashboardLink | null>(null);
+  const [editingLink, setEditingLink] = useState<ShortcutLink | null>(null);
   const [editingSnippet, setEditingSnippet] = useState<TextSnippet | null>(null);
   const [copiedSnippetId, setCopiedSnippetId] = useState<string | null>(null);
   const [activeForm, setActiveForm] = useState<'link' | 'snippet'>('link');
@@ -70,15 +70,15 @@ export const Dashboard: React.FC = () => {
 
   // Load links from localStorage on component mount
   useEffect(() => {
-    const savedLinks = localStorage.getItem('dashboardLinks');
-    const savedSnippets = localStorage.getItem('dashboardSnippets');
+    const savedLinks = localStorage.getItem('shortcutsLinks');
+    const savedSnippets = localStorage.getItem('shortcutsSnippets');
     
     // If no saved data exists, load demo data
     if (!savedLinks && !savedSnippets) {
       setLinks(demoLinks);
       setSnippets(demoSnippets);
-      localStorage.setItem('dashboardLinks', JSON.stringify(demoLinks));
-      localStorage.setItem('dashboardSnippets', JSON.stringify(demoSnippets));
+      localStorage.setItem('shortcutsLinks', JSON.stringify(demoLinks));
+      localStorage.setItem('shortcutsSnippets', JSON.stringify(demoSnippets));
     } else {
       // Otherwise load saved data
       if (savedLinks) {
@@ -93,12 +93,12 @@ export const Dashboard: React.FC = () => {
 
   // Save links to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('dashboardLinks', JSON.stringify(links));
+    localStorage.setItem('shortcutsLinks', JSON.stringify(links));
   }, [links]);
   
   // Save snippets to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('dashboardSnippets', JSON.stringify(snippets));
+    localStorage.setItem('shortcutsSnippets', JSON.stringify(snippets));
   }, [snippets]);
 
   // Reset copied state after 2 seconds
@@ -113,7 +113,7 @@ export const Dashboard: React.FC = () => {
 
   const addLink = () => {
     if (newLinkTitle.trim() && newLinkUrl.trim()) {
-      const newLink: DashboardLink = {
+      const newLink: ShortcutLink = {
         id: Date.now().toString(),
         title: newLinkTitle,
         url: ensureHttpPrefix(newLinkUrl),
@@ -173,7 +173,7 @@ export const Dashboard: React.FC = () => {
     setSnippets(snippets.filter((snippet) => snippet.id !== id));
   };
 
-  const startEditingLink = (link: DashboardLink) => {
+  const startEditingLink = (link: ShortcutLink) => {
     setEditingLink({ ...link });
   };
 
@@ -397,7 +397,7 @@ export const Dashboard: React.FC = () => {
         {/* Display links and snippets */}
         {[...links.map(item => ({ ...item, type: 'link' })), ...snippets.map(item => ({ ...item, type: 'snippet' }))].map((item) => {
           if (item.type === 'link') {
-            const link = item as DashboardLink & { type: string };
+            const link = item as ShortcutLink & { type: string };
             return (
               <div
                 key={`link-${link.id}`}
