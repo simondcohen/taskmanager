@@ -220,7 +220,7 @@ function App() {
       // Set today as the selected day
       setSelectedDay(formatDate(new Date()));
     }
-  }, [templateTasks, checklists]);
+  }, []); // Empty dependency array to run only on mount
 
   // Save data to localStorage when it changes
   useEffect(() => {
