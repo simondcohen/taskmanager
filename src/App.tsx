@@ -13,13 +13,13 @@ import { PodcastList } from './components/PodcastList';
 import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
-import { Shortcuts } from './components/Shortcuts';
 import CalendarView from './pages/CalendarView';
 import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
 import { RemindersList } from './components/RemindersList';
 import { listReminders, upsertReminder, deleteReminder } from './storage/reminderStore';
 import { startReminderService, stopReminderService, subscribeToInAppNotifications, handleReminderCompleted, dismissInAppNotification } from './services/reminderService';
+import { toStorage, fromStorage } from './utils/time';
 import { InAppNotifications } from './components/InAppNotifications';
 
 // Group tabs by category
@@ -27,7 +27,6 @@ const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
-      { id: 'shortcuts', label: 'Shortcuts', icon: LayoutGrid },
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
@@ -59,7 +58,7 @@ const tabGroups = [
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const savedTab = localStorage.getItem('activeTab');
-    return (savedTab as Tab) || 'shortcuts';
+    return (savedTab as Tab) || 'daily';
   });
   const [isCompactView, setIsCompactView] = useState(false);
   const [activeInAppReminders, setActiveInAppReminders] = useState<ReminderItem[]>([]);
@@ -71,7 +70,7 @@ function App() {
     const validTab = path as Tab;
     
     if (path === '') {
-      setActiveTab('shortcuts');
+      setActiveTab('daily');
     } else if (tabGroups.some(group => 
       group.tabs.some(tab => tab.id === validTab)
     )) {
@@ -174,7 +173,7 @@ function App() {
             return {
               ...todo,
               // Use a timestamp from half an hour ago to prevent immediate hiding
-              completedAt: new Date(Date.now() - 30 * 60 * 1000).toISOString()
+              completedAt: toStorage(new Date(Date.now() - 30 * 60 * 1000))
             };
           }
           // Otherwise just ensure the completedAt field exists
@@ -319,7 +318,7 @@ function App() {
   // Handle completing a reminder from the in-app notification
   const handleCompleteReminder = (id: string) => {
     const updatedReminders = reminders.map(r =>
-      r.id === id ? { ...r, completed: true, completedAt: new Date().toISOString() } : r
+      r.id === id ? { ...r, completed: true, completedAt: toStorage(new Date()) } : r
     );
     setReminders(updatedReminders);
     handleReminderCompleted(id);
@@ -388,12 +387,14 @@ function App() {
             <Routes>
               <Route path="/" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <Shortcuts />
-                </div>
-              } />
-              <Route path="/shortcuts" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <Shortcuts />
+                  <DailyChecklist
+                    templateTasks={templateTasks}
+                    checklists={checklists}
+                    selectedDay={selectedDay}
+                    onUpdateChecklists={setChecklists}
+                    onUpdateTemplate={setTemplateTasks}
+                    onSelectDay={setSelectedDay}
+                  />
                 </div>
               } />
               <Route path="/daily" element={

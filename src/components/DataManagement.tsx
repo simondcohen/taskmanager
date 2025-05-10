@@ -3,6 +3,7 @@ import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentIt
 import { X } from 'lucide-react';
 import { listEvents } from '../storage/eventStore';
 import { Category } from './CategoryManager';
+import { toStorage, fromStorage, formatDateOnly } from '../utils/time';
 
 interface DataManagementProps {
   templateTasks: Task[];
@@ -104,7 +105,7 @@ export function DataManagement({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `task-manager-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `task-manager-data-${formatDateOnly(toStorage(new Date()))}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -266,7 +267,7 @@ export function DataManagement({
     );
 
     const data = {
-      exportedAt: new Date().toISOString(),
+      exportedAt: toStorage(new Date()),
       tasks: incompleteTasks,
       deadlines: incompleteDeadlines,
       categories: activeCategories,

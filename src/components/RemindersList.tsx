@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ReminderItem } from '../types';
 import { dateUtils } from '../utils/dateUtils';
+import { toStorage, fromStorage } from '../utils/time';
 import { X, Edit2, Check, Plus, Calendar, Clock, RefreshCcw, FileText, Bell, AlertTriangle } from 'lucide-react';
 import { startReminderService, handleReminderUpdated, handleReminderCompleted, forceTestNotification } from '../services/reminderService';
 import { requestNotificationPermission } from '../utils/notificationUtils';
@@ -120,7 +121,7 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
     
     // Update the current reminder's completion status
     updatedReminders = updatedReminders.map(r =>
-      r.id === id ? { ...r, completed: isCompleting, completedAt: isCompleting ? new Date().toISOString() : null } : r
+      r.id === id ? { ...r, completed: isCompleting, completedAt: isCompleting ? toStorage(new Date()) : null } : r
     );
     
     // If we're completing a recurring reminder, create the next occurrence
@@ -183,7 +184,7 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
 
   // Sort dates (keys) by chronological order
   const sortedDates = Object.keys(groupedReminders).sort((a, b) => {
-    return new Date(a).getTime() - new Date(b).getTime();
+    return fromStorage(a).getTime() - fromStorage(b).getTime();
   });
 
   // Count completed reminders for the toggle button
@@ -340,7 +341,7 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
                 {new Date(date) < new Date() && new Date(date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0) && (
                   <div className="ml-2 text-red-500 text-xs font-medium">Past due</div>
                 )}
-                {dateUtils.isToday(new Date(date)) && (
+                {dateUtils.isToday(fromStorage(date)) && (
                   <div className="ml-2 text-green-500 text-xs font-medium">Today</div>
                 )}
               </div>
@@ -452,7 +453,7 @@ export function RemindersList({ reminders, onUpdateReminders }: RemindersListPro
                           
                           {reminder.completed && reminder.completedAt && (
                             <div className="text-xs text-green-600 mt-2">
-                              Completed on {new Date(reminder.completedAt).toLocaleDateString()} at {new Date(reminder.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              Completed on {fromStorage(reminder.completedAt).toLocaleDateString()} at {fromStorage(reminder.completedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </div>
                           )}
                         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Edit2, X, Plus, Filter, Settings, Clock, Upload } from 'lucide-react';
 import { TodoItem } from '../types';
 import { CategoryManager, Category } from './CategoryManager';
+import { toStorage, fromStorage } from '../utils/time';
 
 interface TodoListProps {
   todos: TodoItem[];
@@ -124,7 +125,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     }
 
     // We've validated completedAt is not null above
-    const completedTime = new Date(todo.completedAt).getTime();
+    const completedTime = fromStorage(todo.completedAt).getTime();
     const currentTime = new Date().getTime();
     const hoursSinceCompletion = (currentTime - completedTime) / (1000 * 60 * 60);
     
@@ -220,7 +221,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       time: newTodoTime || null,
       completed: false,
       completedAt: null,
-      dateAdded: new Date().toISOString(),
+      dateAdded: toStorage(new Date()),
       category: newTodoCategory || undefined,
       parentCategory: newTodoCategory ? 
         categories.find(cat => cat.name === newTodoCategory)?.parentCategory : 
@@ -289,7 +290,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       newTodos[originalIndex] = {
         ...todo,
         completed: nowCompleted,
-        completedAt: nowCompleted ? new Date().toISOString() : null
+        completedAt: nowCompleted ? toStorage(new Date()) : null
       };
       
       // Sort the todos so completed items always go to the bottom
@@ -342,7 +343,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
           time: typeof item.time === 'string' ? item.time : null,
           completed: typeof item.completed === 'boolean' ? item.completed : false,
           completedAt: item.completed && item.completedAt ? item.completedAt : null,
-          dateAdded: new Date().toISOString(),
+          dateAdded: toStorage(new Date()),
           category: typeof item.category === 'string' ? item.category : undefined
         };
         

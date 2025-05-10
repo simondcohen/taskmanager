@@ -147,14 +147,15 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     }
 
     const dateTime = new Date(`${newDate}T${newTime}`);
-    // Create an ISO string but preserve local timezone information
-    const timestamp = new Date(
-      dateTime.getFullYear(),
-      dateTime.getMonth(),
-      dateTime.getDate(),
-      dateTime.getHours(),
-      dateTime.getMinutes()
-    ).toISOString();
+    
+    // Fix: Create timestamp without timezone shifting
+    // Format: YYYY-MM-DDTHH:MM:SS.sssZ - with the actual date/time values preserved
+    const year = dateTime.getFullYear();
+    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(dateTime.getDate()).padStart(2, '0');
+    const hours = String(dateTime.getHours()).padStart(2, '0');
+    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+    const timestamp = `${year}-${month}-${day}T${hours}:${minutes}:00.000Z`;
     
     const newItem: MedicationItem = {
       id: Date.now(),

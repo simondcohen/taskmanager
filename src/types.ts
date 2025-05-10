@@ -126,7 +126,6 @@ export interface ReminderItem {
 }
 
 export type Tab = 
-  | 'shortcuts'
   | 'daily' 
   | 'todos' 
   | 'data' 

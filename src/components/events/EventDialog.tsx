@@ -3,6 +3,7 @@ import { upsertEvent } from '../../storage/eventStore';
 import { EventItem } from '../../types';
 import { Calendar, Clock, ClipboardList, RefreshCw, Trash2 } from 'lucide-react';
 import { dateUtils } from '../../utils/dateUtils';
+import { toStorage, fromStorage, formatDateOnly } from '../../utils/time';
 
 interface Props {
   open: boolean;
@@ -53,7 +54,7 @@ export default function EventDialog({ open, initial, onClose, onSaved, onDelete 
       
       // Set default date to today
       const today = new Date();
-      setEventDate(today.toISOString().split('T')[0]);
+      setEventDate(formatDateOnly(toStorage(today)));
       
       // Set default start time to next round hour
       const nextHour = new Date();
