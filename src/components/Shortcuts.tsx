@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Edit, Plus, ExternalLink, Copy, Check, FileText, Link as LinkIcon, ChevronDown, ChevronUp, Folder, FolderOpen, RefreshCw, ChevronRight } from 'lucide-react';
+import { Trash2, Edit, Plus, ExternalLink, Copy, Check, FileText, Link as LinkIcon, ChevronDown, ChevronUp, Folder, FolderOpen, RefreshCw, ChevronRight, Download, Clipboard } from 'lucide-react';
 
 interface ShortcutCategory {
   id: string;
@@ -42,6 +42,7 @@ export const Shortcuts: React.FC = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryParentId, setNewCategoryParentId] = useState<string | null>(null);
+  const [showBackupOptions, setShowBackupOptions] = useState(false);
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -469,24 +470,80 @@ export const Shortcuts: React.FC = () => {
     ));
   };
 
+  const handleBackup = (method: 'download' | 'clipboard') => {
+    const backupData = {
+      links,
+      snippets,
+      categories,
+      version: '1.0',
+      timestamp: new Date().toISOString()
+    };
+
+    const jsonString = JSON.stringify(backupData, null, 2);
+
+    if (method === 'download') {
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `shortcuts-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else {
+      navigator.clipboard.writeText(jsonString).then(() => {
+        setShowBackupOptions(false);
+      });
+    }
+  };
+
   return (
     <div className="p-4 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">Shortcuts</h2>
-        <button
-          onClick={toggleFormVisibility}
-          className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-        >
-          {isFormVisible ? (
-            <>
-              <ChevronUp size={16} /> Hide Form
-            </>
-          ) : (
-            <>
-              <Plus size={16} /> Add New
-            </>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowBackupOptions(!showBackupOptions)}
+              className="flex items-center gap-1 px-3 py-1.5 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition"
+            >
+              <Download size={16} /> Backup
+            </button>
+            {showBackupOptions && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-20 border">
+                <div className="py-1">
+                  <button
+                    onClick={() => handleBackup('download')}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Download size={16} /> Download File
+                  </button>
+                  <button
+                    onClick={() => handleBackup('clipboard')}
+                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <Clipboard size={16} /> Copy to Clipboard
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={toggleFormVisibility}
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+          >
+            {isFormVisible ? (
+              <>
+                <ChevronUp size={16} /> Hide Form
+              </>
+            ) : (
+              <>
+                <Plus size={16} /> Add New
+              </>
+            )}
+          </button>
+        </div>
       </div>
       
       {isFormVisible && (
