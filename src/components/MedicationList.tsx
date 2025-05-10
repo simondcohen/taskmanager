@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, PlusCircle, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, PlusCircle, Edit, Trash2, X, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { MedicationItem } from '../types';
 import { toStorage, fromStorage, formatDateOnly } from '../utils/time';
 
@@ -17,6 +17,8 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   const [newTime, setNewTime] = useState(getCurrentTime());
   const [newNotes, setNewNotes] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [inlineEditingId, setInlineEditingId] = useState<number | null>(null);
+  const [inlineEditForm, setInlineEditForm] = useState<MedicationItem | null>(null);
   const [showMedicationManager, setShowMedicationManager] = useState(false);
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
 
@@ -196,6 +198,40 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     setNewTime(item.time);
     setNewNotes(item.notes || '');
     setEditingId(item.id);
+  };
+
+  // Inline edit medication record
+  const startInlineEdit = (item: MedicationItem) => {
+    setInlineEditingId(item.id);
+    setInlineEditForm({...item});
+  };
+
+  // Cancel inline edit
+  const cancelInlineEdit = () => {
+    setInlineEditingId(null);
+    setInlineEditForm(null);
+  };
+
+  // Save inline edit
+  const saveInlineEdit = () => {
+    if (inlineEditForm) {
+      // Update the timestamp based on date and time
+      const dateTime = new Date(`${inlineEditForm.date}T${inlineEditForm.time}`);
+      const timestamp = toStorage(dateTime);
+      
+      const updatedItem = {
+        ...inlineEditForm,
+        timestamp
+      };
+
+      const updatedItems = items.map(item => 
+        item.id === inlineEditForm.id ? updatedItem : item
+      );
+      
+      onUpdateItems(updatedItems);
+      setInlineEditingId(null);
+      setInlineEditForm(null);
+    }
   };
 
   // Add new medication to the list
@@ -431,36 +467,123 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
         {selectedDateLogs.length > 0 ? (
           <div className="space-y-3">
             {selectedDateLogs
-              .sort((a, b) => fromStorage(a.timestamp).getTime() - fromStorage(b.timestamp).getTime()) // Changed to ascending order
+              .sort((a, b) => fromStorage(a.timestamp).getTime() - fromStorage(b.timestamp).getTime()) 
               .map((item) => (
-                <div key={item.id} className="p-3 border rounded-lg flex justify-between items-start">
-                  <div>
-                    <div className="font-medium">{item.name}</div>
-                    <div className="text-sm text-gray-600">
-                      Dose: {item.dose} at {formatTime(item.time)}
-                    </div>
-                    {item.notes && (
-                      <div className="text-sm text-gray-600 mt-1">
-                        Notes: {item.notes}
+                <div key={item.id} className="p-3 border rounded-lg">
+                  {inlineEditingId === item.id ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Medication
+                        </label>
+                        <select
+                          value={inlineEditForm?.name || ''}
+                          onChange={(e) => setInlineEditForm({...inlineEditForm!, name: e.target.value})}
+                          className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          {medications.map((med, index) => (
+                            <option key={index} value={med}>
+                              {med}
+                            </option>
+                          ))}
+                        </select>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => editMedicationRecord(item)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="Edit"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    <button
-                      onClick={() => deleteMedicationRecord(item.id)}
-                      className="text-red-600 hover:text-red-800"
-                      title="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Dose
+                        </label>
+                        <input
+                          type="number"
+                          value={inlineEditForm?.dose || 1}
+                          onChange={(e) => setInlineEditForm({...inlineEditForm!, dose: Math.max(1, parseInt(e.target.value) || 1)})}
+                          min="1"
+                          className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={inlineEditForm?.date || ''}
+                          onChange={(e) => setInlineEditForm({...inlineEditForm!, date: e.target.value})}
+                          className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={inlineEditForm?.time || ''}
+                          onChange={(e) => setInlineEditForm({...inlineEditForm!, time: e.target.value})}
+                          className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Notes (optional)
+                        </label>
+                        <textarea
+                          value={inlineEditForm?.notes || ''}
+                          onChange={(e) => setInlineEditForm({...inlineEditForm!, notes: e.target.value})}
+                          className="w-full p-2 border rounded focus:ring-indigo-500 focus:border-indigo-500"
+                          rows={2}
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 flex justify-end space-x-2 mt-2">
+                        <button
+                          onClick={saveInlineEdit}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                        >
+                          <Check size={16} className="mr-1" /> Save
+                        </button>
+                        <button
+                          onClick={cancelInlineEdit}
+                          className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 flex items-center"
+                        >
+                          <X size={16} className="mr-1" /> Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium">{item.name}</div>
+                        <div className="text-sm text-gray-600">
+                          Dose: {item.dose} at {formatTime(item.time)}
+                        </div>
+                        {item.notes && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            Notes: {item.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => startInlineEdit(item)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Edit"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button
+                          onClick={() => deleteMedicationRecord(item.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
           </div>
