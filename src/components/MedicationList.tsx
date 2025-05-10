@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, PlusCircle, Edit, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MedicationItem } from '../types';
+import { toStorage, fromStorage, formatDateOnly } from '../utils/time';
 
 interface MedicationListProps {
   items: MedicationItem[];
@@ -34,16 +35,12 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
 
   // Helper functions for date and time
   function parseLocalDate(dateStr: string) {
-    const [y, m, d] = dateStr.split('-').map(Number);
-    return new Date(y, m - 1, d); // local midnight
+    const date = fromStorage(dateStr);
+    return date;
   }
 
   function getTodayDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return formatDateOnly(toStorage(new Date()));
   }
 
   function getCurrentTime() {
@@ -63,7 +60,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   // Helper to format date for display
   function formatDateForDisplay(dateStr: string) {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
+    const date = fromStorage(dateStr);
     return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
@@ -89,7 +86,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     const medicationLogs = items.filter(item => item.name === medication && item.date === selectedDate);
     if (medicationLogs.length) {
       const sorted = [...medicationLogs].sort((a, b) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        fromStorage(a.timestamp).getTime() - fromStorage(b.timestamp).getTime()
       );
       acc[medication] = sorted[0];
     } else {
@@ -102,7 +99,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   const goToPreviousDay = () => {
     const currentDate = parseLocalDate(selectedDate);
     currentDate.setDate(currentDate.getDate() - 1);
-    setSelectedDate(formatDateForState(currentDate));
+    setSelectedDate(formatDateOnly(toStorage(currentDate)));
   };
 
   // Navigate to next day
@@ -117,7 +114,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     nextDate.setHours(0, 0, 0, 0);
     
     if (nextDate <= today) {
-      setSelectedDate(formatDateForState(nextDate));
+      setSelectedDate(formatDateOnly(toStorage(nextDate)));
     }
   };
 
@@ -149,13 +146,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     const dateTime = new Date(`${newDate}T${newTime}`);
     
     // Fix: Create timestamp without timezone shifting
-    // Format: YYYY-MM-DDTHH:MM:SS.sssZ - with the actual date/time values preserved
-    const year = dateTime.getFullYear();
-    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
-    const day = String(dateTime.getDate()).padStart(2, '0');
-    const hours = String(dateTime.getHours()).padStart(2, '0');
-    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
-    const timestamp = `${year}-${month}-${day}T${hours}:${minutes}:00.000Z`;
+    const timestamp = toStorage(dateTime);
     
     const newItem: MedicationItem = {
       id: Date.now(),
@@ -440,7 +431,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
         {selectedDateLogs.length > 0 ? (
           <div className="space-y-3">
             {selectedDateLogs
-              .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) // Changed to ascending order
+              .sort((a, b) => fromStorage(a.timestamp).getTime() - fromStorage(b.timestamp).getTime()) // Changed to ascending order
               .map((item) => (
                 <div key={item.id} className="p-3 border rounded-lg flex justify-between items-start">
                   <div>
