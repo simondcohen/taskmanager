@@ -14,13 +14,9 @@ import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, ReminderItem, BookItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
-import { RemindersList } from './components/RemindersList';
-import { listReminders, upsertReminder, deleteReminder } from './storage/reminderStore';
-import { startReminderService, stopReminderService, subscribeToInAppNotifications, handleReminderCompleted, dismissInAppNotification } from './services/reminderService';
 import { toStorage, fromStorage } from './utils/time';
-import { InAppNotifications } from './components/InAppNotifications';
 
 // Group tabs by category
 const tabGroups = [
@@ -30,7 +26,6 @@ const tabGroups = [
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
       { id: 'deadlines', label: 'Deadlines', icon: Calendar },
-      { id: 'reminders', label: 'Reminders', icon: CheckSquare },
       { id: 'medications', label: 'Medications', icon: Pill },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
@@ -61,7 +56,6 @@ function App() {
     return (savedTab as Tab) || 'daily';
   });
   const [isCompactView, setIsCompactView] = useState(false);
-  const [activeInAppReminders, setActiveInAppReminders] = useState<ReminderItem[]>([]);
   const location = useLocation();
   
   // Update activeTab based on URL path
@@ -95,24 +89,6 @@ function App() {
     document.title = tabLabel;
   }, [activeTab]);
   
-  // Start the reminder service when the app loads
-  useEffect(() => {
-    // Start the reminder service
-    startReminderService();
-    
-    // Subscribe to in-app notifications
-    const unsubscribe = subscribeToInAppNotifications((activeReminders) => {
-      console.log("[App] Received updated active reminders:", activeReminders.length);
-      setActiveInAppReminders(activeReminders);
-    });
-    
-    // Clean up when the app unmounts
-    return () => {
-      stopReminderService();
-      unsubscribe();
-    };
-  }, []);
-  
   // Get dates for demo data
   const today = new Date();
   const tomorrow = new Date(today);
@@ -143,9 +119,6 @@ function App() {
   const [medicationItems, setMedicationItems] = useState<MedicationItem[]>(() => {
     const savedItems = localStorage.getItem('medicationItems');
     return savedItems ? JSON.parse(savedItems) : [];
-  });
-  const [reminders, setReminders] = useState<ReminderItem[]>(() => {
-    return listReminders();
   });
   const [readingCategories, setReadingCategories] = useState<Category[]>([]);
   const [bookCategories, setBookCategories] = useState<Category[]>([]);
@@ -198,41 +171,35 @@ function App() {
           return cat;
         });
         
-        // Set the updated categories first
+        setTodos(upgradedTodos);
         setTodoCategories(upgradedCategories);
         
-        // Then update todos to reference parentCategory from their categories
-        const fullyUpgradedTodos = upgradedTodos.map((todo: any) => {
-          if (todo.category && !todo.parentCategory) {
-            const category = upgradedCategories.find((cat: any) => cat.name === todo.category);
-            return {
-              ...todo,
-              parentCategory: category?.parentCategory || 'work' // Default to work if category not found
-            };
-          }
-          return todo;
-        });
-        
-        setTodos(fullyUpgradedTodos);
-        
-        // Update other categories too
         const upgradeOtherCategories = (categories: any[]) => {
           return categories.map((cat: any) => {
             if (!cat.parentCategory) {
               return {
                 ...cat,
-                parentCategory: 'work' // Default to 'work' for existing categories
+                parentCategory: 'default' // Default for other categories
               };
             }
             return cat;
           });
         };
         
-        setReadingCategories(upgradeOtherCategories(parsedData.readingCategories || []));
-        setBookCategories(upgradeOtherCategories(parsedData.bookCategories || []));
-        setVideoCategories(upgradeOtherCategories(parsedData.videoCategories || []));
+        // Handle other categories
+        if (parsedData.readingCategories) {
+          setReadingCategories(upgradeOtherCategories(parsedData.readingCategories));
+        }
         
-        // Continue with the rest of the loading
+        if (parsedData.bookCategories) {
+          setBookCategories(upgradeOtherCategories(parsedData.bookCategories));
+        }
+        
+        if (parsedData.videoCategories) {
+          setVideoCategories(upgradeOtherCategories(parsedData.videoCategories));
+        }
+        
+        // Handle other data
         setReadingItems(parsedData.readingItems || []);
         setBookItems(parsedData.bookItems || []);
         setEntertainmentItems(parsedData.entertainmentItems || []);
@@ -242,63 +209,16 @@ function App() {
         setPodcastItems(parsedData.podcastItems || []);
         setDeadlines(parsedData.deadlines || []);
       } else {
-        setTemplateTasks([]);
-        setChecklists({});
-        setTodos([]);
-        setTodoCategories([]);
-        setReadingCategories([]);
-        setBookCategories([]);
-        setVideoCategories([]);
-        setReadingItems([]);
-        setBookItems([]);
-        setEntertainmentItems([]);
-        setVideoItems([]);
-        setShoppingItems([]);
-        setGroceryItems([]);
-        setPodcastItems([]);
-        setDeadlines([]);
-      }
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setTemplateTasks([]);
-      setChecklists({});
-      setTodos([]);
-      setTodoCategories([]);
-      setReadingCategories([]);
-      setBookCategories([]);
-      setVideoCategories([]);
-      setReadingItems([]);
-      setBookItems([]);
-      setEntertainmentItems([]);
-      setVideoItems([]);
-      setShoppingItems([]);
-      setGroceryItems([]);
-      setPodcastItems([]);
-      setDeadlines([]);
-    }
-  }, []);
-
-  // Automatically load today's habits when the app starts
-  useEffect(() => {
-    if (templateTasks.length > 0) {
-      const today = formatDate(new Date());
-      
-      // Ensure checklist exists for today
-      if (!checklists[today]) {
-        const newChecklist = templateTasks.map((task) => ({
-          text: task.text,
-          completed: false,
-          notCompleted: false
-        }));
+        // Use default date format for initial load
+        const today = formatDate(new Date());
         
-        setChecklists(prevChecklists => ({
-          ...prevChecklists,
-          [today]: newChecklist,
-        }));
+        // Set today as the selected day
+        setSelectedDay(today);
       }
-      
+    } catch (error) {
+      console.error('Error loading data from localStorage:', error);
       // Set today as the selected day
-      setSelectedDay(today);
+      setSelectedDay(formatDate(new Date()));
     }
   }, [templateTasks, checklists]);
 
@@ -329,34 +249,9 @@ function App() {
     localStorage.setItem('medicationItems', JSON.stringify(medicationItems));
   }, [medicationItems]);
 
-  // Load reminders from localStorage on mount
-  useEffect(() => {
-    setReminders(listReminders());
-  }, []);
-
-  // Save reminders to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('reminders', JSON.stringify(reminders));
-  }, [reminders]);
-
-  // Handle completing a reminder from the in-app notification
-  const handleCompleteReminder = (id: string) => {
-    const updatedReminders = reminders.map(r =>
-      r.id === id ? { ...r, completed: true, completedAt: toStorage(new Date()) } : r
-    );
-    setReminders(updatedReminders);
-    handleReminderCompleted(id);
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 w-full overflow-x-hidden">
-      <InAppNotifications 
-        activeReminders={activeInAppReminders}
-        onMarkComplete={handleCompleteReminder}
-        onDismiss={dismissInAppNotification}
-      />
-      
-      <div className={`transition-all duration-300 ease-in-out ${activeInAppReminders.length > 0 ? 'pl-12 md:pl-16' : ''} w-full px-4`}>
+      <div className="transition-all duration-300 ease-in-out w-full px-4">
         <div className="max-w-3xl mx-auto w-full">
           <header className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -523,14 +418,6 @@ function App() {
                   />
                 </div>
               } />
-              <Route path="/reminders" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <RemindersList
-                    reminders={reminders}
-                    onUpdateReminders={setReminders}
-                  />
-                </div>
-              } />
               <Route path="/data" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
                   <DataManagement
@@ -574,45 +461,6 @@ function App() {
                         });
                       }
 
-                      // Handle reminders if they exist in the imported data
-                      if (data.reminders && Array.isArray(data.reminders)) {
-                        // Get existing reminders from localStorage
-                        const existingReminders = JSON.parse(
-                          localStorage.getItem('reminders') || '[]'
-                        );
-                        
-                        // Create a map of existing reminders for easy lookup
-                        const remindersMap = new Map(
-                          existingReminders.map((r: any) => [r.id, r])
-                        );
-                        
-                        // Merge new reminders, updating existing ones or adding new ones
-                        data.reminders.forEach((reminder: any) => {
-                          if (reminder.id && remindersMap.has(reminder.id)) {
-                            const existingReminder = remindersMap.get(reminder.id);
-                            if (existingReminder) {
-                              remindersMap.set(reminder.id, {
-                                ...existingReminder,
-                                ...reminder
-                              });
-                            }
-                          } else {
-                            // Ensure the reminder has an ID
-                            const newReminder = {
-                              ...reminder,
-                              id: reminder.id || `reminder-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-                            };
-                            remindersMap.set(newReminder.id, newReminder);
-                          }
-                        });
-                        
-                        // Save updated reminders to localStorage
-                        localStorage.setItem(
-                          'reminders',
-                          JSON.stringify(Array.from(remindersMap.values()))
-                        );
-                      }
-
                       if (data.templateTasks) setTemplateTasks(data.templateTasks);
                       if (data.checklists) setChecklists(data.checklists);
                       if (data.medicationItems) setMedicationItems(data.medicationItems);
@@ -650,6 +498,7 @@ function App() {
                         setMedicationItems([]);
                         localStorage.removeItem('react-task-manager-app');
                         localStorage.removeItem('medications');
+                        localStorage.removeItem('reminders');
                       }
                     }}
                     isShowingDemo={false}

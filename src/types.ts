@@ -114,17 +114,6 @@ export interface DeadlineItem {
   completed?: boolean;
 }
 
-export interface ReminderItem {
-  id: string;
-  text: string;
-  date: string; // YYYY-MM-DD
-  time?: string; // HH:mm (optional)
-  recurrence?: 'none' | 'daily' | 'weekly' | 'monthly' | 'yearly' | string; // string for custom rules
-  completed: boolean;
-  completedAt?: string | null;
-  notes?: string;
-}
-
 export type Tab = 
   | 'daily' 
   | 'todos' 
@@ -138,7 +127,6 @@ export type Tab =
   | 'deadlines'
   | 'medications'
   | 'calendar'
-  | 'reminders'
   | 'books';
 
 export interface CalendarDay {
