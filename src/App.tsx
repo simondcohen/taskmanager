@@ -278,6 +278,30 @@ function App() {
     }
   }, []);
 
+  // Automatically load today's habits when the app starts
+  useEffect(() => {
+    if (templateTasks.length > 0) {
+      const today = formatDate(new Date());
+      
+      // Ensure checklist exists for today
+      if (!checklists[today]) {
+        const newChecklist = templateTasks.map((task) => ({
+          text: task.text,
+          completed: false,
+          notCompleted: false
+        }));
+        
+        setChecklists(prevChecklists => ({
+          ...prevChecklists,
+          [today]: newChecklist,
+        }));
+      }
+      
+      // Set today as the selected day
+      setSelectedDay(today);
+    }
+  }, [templateTasks, checklists]);
+
   // Save data to localStorage when it changes
   useEffect(() => {
     const dataToSave = {

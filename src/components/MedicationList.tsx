@@ -35,6 +35,18 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     }
   }, []);
 
+  // Update the newDate field when selectedDate changes
+  useEffect(() => {
+    setNewDate(selectedDate);
+    
+    // Clear the time field when viewing previous days
+    if (selectedDate !== getTodayDate()) {
+      setNewTime('');
+    } else {
+      setNewTime(getCurrentTime());
+    }
+  }, [selectedDate]);
+
   // Helper functions for date and time
   function parseLocalDate(dateStr: string) {
     const date = fromStorage(dateStr);
@@ -175,8 +187,8 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     // Reset form
     setNewMedicationName('');
     setNewDose(1);
-    setNewDate(getTodayDate());
-    setNewTime(getCurrentTime());
+    setNewDate(selectedDate);
+    setNewTime(isToday ? getCurrentTime() : '');
     setNewNotes('');
     setNewMedication('');
   };
@@ -362,8 +374,8 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
                 setEditingId(null);
                 setNewMedicationName('');
                 setNewDose(1);
-                setNewDate(getTodayDate());
-                setNewTime(getCurrentTime());
+                setNewDate(selectedDate);
+                setNewTime(isToday ? getCurrentTime() : '');
                 setNewNotes('');
               }}
               className="ml-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
