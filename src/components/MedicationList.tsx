@@ -100,7 +100,7 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
     const medicationLogs = items.filter(item => item.name === medication && item.date === selectedDate);
     if (medicationLogs.length) {
       const sorted = [...medicationLogs].sort((a, b) => 
-        fromStorage(a.timestamp).getTime() - fromStorage(b.timestamp).getTime()
+        fromStorage(b.timestamp).getTime() - fromStorage(a.timestamp).getTime()
       );
       acc[medication] = sorted[0];
     } else {
