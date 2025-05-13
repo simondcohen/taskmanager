@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, DeadlineItem, MedicationItem, BookItem } from '../types';
+import { Task, TodoItem, GroceryItem, ShoppingItem, ReadingItem, EntertainmentItem, VideoItem, PodcastItem, MedicationItem, BookItem } from '../types';
 import { X } from 'lucide-react';
 import { listEvents } from '../storage/eventStore';
-import { Category } from './CategoryManager';
 import { toStorage, fromStorage, formatDateOnly } from '../utils/time';
+
+interface Category {
+  name: string;
+  color: string;
+  parentCategory: 'work' | 'personal';
+}
 
 interface DataManagementProps {
   templateTasks: Task[];
@@ -15,7 +20,6 @@ interface DataManagementProps {
   entertainmentItems: EntertainmentItem[];
   videoItems: VideoItem[];
   podcastItems: PodcastItem[];
-  deadlines?: DeadlineItem[];
   medicationItems: MedicationItem[];
   selectedDay: string;
   todoCategories: Category[];
@@ -27,7 +31,6 @@ interface DataManagementProps {
     templateTasks: Task[]; 
     checklists: { [date: string]: Task[] }; 
     todos: TodoItem[]; 
-    deadlines?: DeadlineItem[]; 
     medicationItems?: MedicationItem[];
     readingItems?: ReadingItem[];
     bookItems?: BookItem[];
@@ -42,7 +45,6 @@ interface DataManagementProps {
     videoCategories?: Category[];
     reminders?: any[];
   }) => void;
-  onResetApp?: () => void;
   onLoadDemo?: () => void;
   onClearDemo?: () => void;
   isShowingDemo?: boolean;
@@ -58,7 +60,6 @@ export function DataManagement({
   entertainmentItems,
   videoItems,
   podcastItems,
-  deadlines,
   medicationItems,
   selectedDay,
   todoCategories,
@@ -67,7 +68,6 @@ export function DataManagement({
   videoCategories,
   bookItems,
   onImportData,
-  onResetApp,
   onLoadDemo,
   onClearDemo,
   isShowingDemo
@@ -93,7 +93,6 @@ export function DataManagement({
       entertainmentItems,
       videoItems,
       podcastItems,
-      deadlines: deadlines || [],
       medicationItems,
       // Include reminders if they exist in the app context
       reminders: window.localStorage.getItem('reminders') ? 
@@ -167,8 +166,8 @@ export function DataManagement({
     const arrayTypes = [
       'todoCategories', 'readingCategories', 'bookCategories', 'videoCategories',
       'readingItems', 'bookItems', 'groceryItems', 'shoppingItems', 
-      'entertainmentItems', 'videoItems', 'podcastItems', 'deadlines', 
-      'medicationItems', 'reminders'
+      'entertainmentItems', 'videoItems', 'podcastItems', 'medicationItems', 
+      'reminders', 'calendar_events'
     ];
 
     for (const type of arrayTypes) {
@@ -226,9 +225,6 @@ export function DataManagement({
     // Get incomplete tasks
     const incompleteTasks = todos.filter(todo => !todo.completed);
 
-    // Get incomplete deadlines
-    const incompleteDeadlines = (deadlines || []).filter(deadline => !deadline.completed);
-
     // Get calendar events
     const calendarEvents = listEvents();
 
@@ -269,14 +265,13 @@ export function DataManagement({
     const data = {
       exportedAt: toStorage(new Date()),
       tasks: incompleteTasks,
-      deadlines: incompleteDeadlines,
       categories: activeCategories,
       calendar_events: futureEvents
     };
 
     copyToClipboard(
       JSON.stringify(data, null, 2),
-      "Current tasks, deadlines, categories, and future calendar events copied to clipboard!"
+      "Current tasks and categories copied to clipboard!"
     );
   };
 
@@ -386,18 +381,8 @@ Tasks (todos):
     "completed": false,           // Optional, default: false
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
-    "category": "Category name"   // Optional
-  }
-]
-
-Deadlines:
-"deadlines": [
-  {
-    "id": "unique-string-id",
-    "title": "Deadline title",
-    "dueDate": "YYYY-MM-DD",  // Required
-    "notes": "Optional notes", // Optional
-    "completed": false         // Optional, default: false
+    "category": "Category name",  // Optional
+    "parentCategory": "work" | "personal" // Optional
   }
 ]
 
@@ -415,9 +400,9 @@ Calendar Events:
 Categories:
 "todoCategories": [  // Also: readingCategories, bookCategories, videoCategories
   {
-    "id": "unique-id",
     "name": "Category name",
-    "color": "#RRGGBB"
+    "color": "#RRGGBB",
+    "parentCategory": "work" | "personal"
   }
 ]
 
@@ -434,6 +419,98 @@ Reading Items:
     "completed": false,                   // Required
     "dateAdded": "ISO-timestamp",         // Required
     "category": "Category name"           // Optional
+  }
+]
+
+Book Items:
+"bookItems": [
+  {
+    "id": 1234567890,
+    "title": "Book title",               // Required
+    "author": "Author name",             // Optional
+    "notes": "My notes",                 // Optional
+    "completed": false,                  // Required
+    "dateAdded": "ISO-timestamp",        // Required
+    "category": "Category name"          // Optional
+  }
+]
+
+Grocery Items:
+"groceryItems": [
+  {
+    "id": 1234567890,
+    "name": "Item name",
+    "quantity": 1,
+    "category": "produce" | "dairy" | "meat" | "pantry" | "frozen" | "beverages" | "snacks" | "other",
+    "unit": "oz",                        // Optional
+    "notes": "Additional notes",         // Optional
+    "completed": false,
+    "dateAdded": "ISO-timestamp"
+  }
+]
+
+Shopping Items:
+"shoppingItems": [
+  {
+    "id": 1234567890,
+    "name": "Item name",
+    "quantity": 1,
+    "category": "household" | "electronics" | "clothing" | "other",
+    "priority": "low" | "medium" | "high",
+    "notes": "Additional notes",         // Optional
+    "completed": false,
+    "dateAdded": "ISO-timestamp"
+  }
+]
+
+Video Items:
+"videoItems": [
+  {
+    "id": 1234567890,
+    "url": "https://youtube.com/...",
+    "title": "Video title",
+    "thumbnailUrl": "https://...",
+    "notes": "My notes",                 // Optional
+    "completed": false,
+    "dateAdded": "ISO-timestamp",
+    "category": "Category name"          // Optional
+  }
+]
+
+Podcast Items:
+"podcastItems": [
+  {
+    "id": 1234567890,
+    "title": "Podcast title",
+    "creator": "Podcast creator",        // Optional
+    "episode": "Episode number/name",    // Optional
+    "notes": "My notes",                 // Optional
+    "completed": false,
+    "dateAdded": "ISO-timestamp"
+  }
+]
+
+Entertainment Items:
+"entertainmentItems": [
+  {
+    "id": 1234567890,
+    "title": "Movie/Show title",
+    "notes": "My notes",                 // Optional
+    "completed": false,
+    "dateAdded": "ISO-timestamp"
+  }
+]
+
+Medication Items:
+"medicationItems": [
+  {
+    "id": 1234567890,
+    "name": "Medication name",
+    "dose": 1,
+    "date": "YYYY-MM-DD",
+    "time": "HH:MM",
+    "notes": "Additional notes",         // Optional
+    "timestamp": "ISO-timestamp"
   }
 ]
 
@@ -474,22 +551,8 @@ Reminders:
     "completed": false,           // Optional, default: false
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
-    "category": "Category name"   // Optional
-  }
-]`}
-                    </pre>
-                  </div>
-
-                  <div>
-                    <h5 className="font-semibold text-indigo-600">Deadlines</h5>
-                    <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"deadlines": [
-  {
-    "id": "unique-string-id",
-    "title": "Deadline title",
-    "dueDate": "YYYY-MM-DD",  // Required
-    "notes": "Optional notes", // Optional
-    "completed": false         // Optional, default: false
+    "category": "Category name",  // Optional
+    "parentCategory": "work" | "personal" // Optional
   }
 ]`}
                     </pre>
@@ -509,53 +572,15 @@ Reminders:
 ]`}
                     </pre>
                   </div>
-                  
+
                   <div>
                     <h5 className="font-semibold text-indigo-600">Categories</h5>
                     <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
 {`"todoCategories": [  // Also: readingCategories, bookCategories, videoCategories
   {
-    "id": "unique-id",
     "name": "Category name",
-    "color": "#RRGGBB"
-  }
-]`}
-                    </pre>
-                  </div>
-                  
-                  <div>
-                    <h5 className="font-semibold text-indigo-600">Reading Items</h5>
-                    <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"readingItems": [
-  {
-    "id": 1234567890,
-    "url": "https://website.com/article", // Optional
-    "title": "Article title",             // Required
-    "siteName": "Website Name",           // Optional
-    "description": "Article description", // Optional
-    "imageUrl": "https://...",            // Optional
-    "notes": "My notes",                  // Optional
-    "completed": false,                   // Required
-    "dateAdded": "ISO-timestamp",         // Required
-    "category": "Category name"           // Optional
-  }
-]`}
-                    </pre>
-                  </div>
-                  
-                  <div>
-                    <h5 className="font-semibold text-indigo-600">Reminders</h5>
-                    <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"reminders": [
-  {
-    "id": "unique-string-id",
-    "text": "Reminder text",
-    "date": "YYYY-MM-DD",              // Required
-    "time": "HH:MM",                    // Optional
-    "recurrence": "none|daily|weekly|monthly|yearly", // Optional
-    "completed": false,                 // Required
-    "completedAt": null,                // Optional
-    "notes": "Additional notes"         // Optional
+    "color": "#RRGGBB",
+    "parentCategory": "work" | "personal"
   }
 ]`}
                     </pre>
@@ -582,23 +607,6 @@ Reminders:
                 Import
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Demo Data and Reset Section */}
-      {(onResetApp || onLoadDemo || onClearDemo) && (
-        <div className="border-t pt-6 mt-6">
-          <h3 className="text-lg font-medium mb-4">App Management</h3>
-          <div className="flex flex-col gap-4">
-            {onResetApp && (
-              <button
-                onClick={onResetApp}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-              >
-                Reset App
-              </button>
-            )}
           </div>
         </div>
       )}

@@ -1,33 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { Calendar, CheckSquare, Database, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen } from 'lucide-react';
+import { Calendar, CheckSquare, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { TodoList } from './components/TodoList';
-import { DataManagement } from './components/DataManagement';
 import { ReadingList } from './components/ReadingList';
 import { EntertainmentList } from './components/EntertainmentList';
 import { VideoList } from './components/VideoList';
 import { ShoppingList } from './components/ShoppingList';
 import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
-import { DeadlineTimeline } from './components/DeadlineTimeline';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
 import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, DeadlineItem, MedicationItem, BookItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, MedicationItem, BookItem, EventItem } from './types';
 import { Category } from './components/CategoryManager';
-import { toStorage, fromStorage } from './utils/time';
+import { toStorage, fromStorage, formatDateOnly } from './utils/time';
+import { listEvents, upsertEvent } from './storage/eventStore';
 
 // Group tabs by category
 const tabGroups = [
   {
     name: 'Tasks',
     tabs: [
-      { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
-      { id: 'deadlines', label: 'Deadlines', icon: Calendar },
-      { id: 'medications', label: 'Medications', icon: Pill },
       { id: 'calendar', label: 'Calendar', icon: Calendar },
+    ],
+  },
+  {
+    name: 'Personal',
+    tabs: [
+      { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
+      { id: 'medications', label: 'Medications', icon: Pill },
     ],
   },
   {
@@ -40,12 +43,6 @@ const tabGroups = [
       { id: 'entertainment', label: 'Movies & TV', icon: Film },
       { id: 'videos', label: 'Videos', icon: Video },
       { id: 'podcasts', label: 'Podcasts', icon: Headphones },
-    ],
-  },
-  {
-    name: 'System',
-    tabs: [
-      { id: 'data', label: 'Data Management', icon: Database },
     ],
   },
 ];
@@ -114,7 +111,6 @@ function App() {
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [podcastItems, setPodcastItems] = useState<PodcastItem[]>([]);
-  const [deadlines, setDeadlines] = useState<DeadlineItem[]>([]);
   const [selectedDay, setSelectedDay] = useState(formatDate(new Date()));
   const [medicationItems, setMedicationItems] = useState<MedicationItem[]>(() => {
     const savedItems = localStorage.getItem('medicationItems');
@@ -123,6 +119,11 @@ function App() {
   const [readingCategories, setReadingCategories] = useState<Category[]>([]);
   const [bookCategories, setBookCategories] = useState<Category[]>([]);
   const [videoCategories, setVideoCategories] = useState<Category[]>([]);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importError, setImportError] = useState('');
+  const [showTooltip, setShowTooltip] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -207,7 +208,6 @@ function App() {
         setShoppingItems(parsedData.shoppingItems || []);
         setGroceryItems(parsedData.groceryItems || []);
         setPodcastItems(parsedData.podcastItems || []);
-        setDeadlines(parsedData.deadlines || []);
       } else {
         // Use default date format for initial load
         const today = formatDate(new Date());
@@ -239,15 +239,246 @@ function App() {
       shoppingItems,
       groceryItems,
       podcastItems,
-      deadlines,
     };
     localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
-  }, [templateTasks, checklists, todos, todoCategories, readingCategories, bookCategories, videoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems, deadlines]);
+  }, [templateTasks, checklists, todos, todoCategories, readingCategories, bookCategories, videoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems]);
 
   // Save medication items to localStorage when they change
   useEffect(() => {
     localStorage.setItem('medicationItems', JSON.stringify(medicationItems));
   }, [medicationItems]);
+
+  const showTemporaryMessage = (message: string) => {
+    setShowTooltip(message);
+    setTimeout(() => setShowTooltip(''), 3000);
+  };
+
+  const downloadData = () => {
+    const dataToExport = {
+      templateTasks,
+      checklists,
+      todos,
+      todoCategories,
+      readingCategories,
+      bookCategories,
+      videoCategories,
+      readingItems,
+      bookItems,
+      groceryItems,
+      shoppingItems,
+      entertainmentItems,
+      videoItems,
+      podcastItems,
+      medicationItems,
+      // Include reminders if they exist in the app context
+      reminders: window.localStorage.getItem('reminders') ? 
+        JSON.parse(window.localStorage.getItem('reminders') || '[]') : 
+        []
+    };
+    const jsonString = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `task-manager-data-${formatDateOnly(toStorage(new Date()))}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    showTemporaryMessage('Backup downloaded');
+  };
+
+  const validateImportData = (data: any) => {
+    if (!data || typeof data !== 'object') {
+      alert('Invalid format: Not an object.');
+      return false;
+    }
+
+    let isValid = false;
+
+    if (data.hasOwnProperty('templateTasks')) {
+      if (!Array.isArray(data.templateTasks)) {
+        alert('Invalid: templateTasks not array.');
+        return false;
+      }
+      isValid = true;
+    }
+
+    if (data.hasOwnProperty('checklists')) {
+      if (typeof data.checklists !== 'object' || Array.isArray(data.checklists)) {
+        alert('Invalid: checklists not object.');
+        return false;
+      }
+      isValid = true;
+    }
+
+    if (data.hasOwnProperty('todos')) {
+      if (!Array.isArray(data.todos)) {
+        alert('Invalid: todos not array.');
+        return false;
+      }
+      isValid = true;
+    }
+
+    // Check other data types
+    const arrayTypes = [
+      'todoCategories', 'readingCategories', 'bookCategories', 'videoCategories',
+      'readingItems', 'bookItems', 'groceryItems', 'shoppingItems', 
+      'entertainmentItems', 'videoItems', 'podcastItems', 'medicationItems', 
+      'reminders'
+    ];
+
+    for (const type of arrayTypes) {
+      if (data.hasOwnProperty(type)) {
+        if (!Array.isArray(data[type])) {
+          alert(`Invalid: ${type} not array.`);
+          return false;
+        }
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
+      alert('Invalid: No recognizable sections found.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const parsed = JSON.parse(content);
+        if (validateImportData(parsed)) {
+          handleImportData(parsed);
+          showTemporaryMessage('Data imported successfully!');
+        }
+      } catch (err) {
+        alert('Invalid JSON file or error during parsing.');
+        console.error('Import Error:', err);
+      }
+    };
+    reader.readAsText(file);
+  };
+  
+  const copyToClipboard = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      showTemporaryMessage(successMessage);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy to clipboard');
+    }
+  };
+
+  const handleImportText = () => {
+    setImportError('');
+    try {
+      const parsed = JSON.parse(importText);
+      
+      if (validateImportData(parsed)) {
+        handleImportData(parsed);
+        setIsImportModalOpen(false);
+        setImportText('');
+        showTemporaryMessage('Data imported successfully!');
+      } else {
+        setImportError('JSON schema not recognised');
+      }
+    } catch (err) {
+      setImportError('Invalid JSON');
+      console.error('Import Error:', err);
+    }
+  };
+
+  const exportCurrentTasks = () => {
+    // Get current date
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+    
+    // Get incomplete tasks
+    const incompleteTasks = todos.filter(todo => !todo.completed);
+
+    // Get calendar events
+    const calendarEvents = listEvents();
+
+    // Process events to include only future events and handle recurring ones efficiently
+    const futureEvents = calendarEvents
+      .map((event: any) => {
+        const eventStartDate = new Date(event.start_ts);
+        // For non-recurring events, just check if they're in the future
+        if (!event.recurrence) {
+          return eventStartDate >= now ? event : null;
+        } 
+        
+        // For recurring events, format them efficiently
+        if (event.recurrence?.startsWith('weekly:')) {
+          const weekdays = event.recurrence.slice(7).split(',');
+          return {
+            ...event,
+            recurrence_details: {
+              frequency: 'weekly',
+              byweekday: weekdays
+            }
+          };
+        }
+        
+        return event;
+      })
+      .filter(Boolean); // Remove null values (past non-recurring events)
+
+    // Get active categories
+    const activeCategoriesMap = new Map();
+    incompleteTasks.forEach(task => {
+      if (task.category) activeCategoriesMap.set(task.category, true);
+    });
+    const activeCategories = todoCategories.filter(cat => 
+      activeCategoriesMap.has(cat.name)
+    );
+
+    const data = {
+      exportedAt: toStorage(new Date()),
+      tasks: incompleteTasks,
+      categories: activeCategories,
+      calendar_events: futureEvents
+    };
+
+    copyToClipboard(
+      JSON.stringify(data, null, 2),
+      "Tasks & calendar copied to clipboard!"
+    );
+  };
+  
+  const handleImportData = (data: any) => {
+    if (data.templateTasks) setTemplateTasks(data.templateTasks);
+    if (data.checklists) setChecklists(data.checklists);
+    if (data.todos) setTodos(data.todos);
+    if (data.todoCategories) setTodoCategories(data.todoCategories);
+    if (data.readingCategories) setReadingCategories(data.readingCategories);
+    if (data.bookCategories) setBookCategories(data.bookCategories);
+    if (data.videoCategories) setVideoCategories(data.videoCategories);
+    if (data.readingItems) setReadingItems(data.readingItems);
+    if (data.bookItems) setBookItems(data.bookItems);
+    if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
+    if (data.videoItems) setVideoItems(data.videoItems);
+    if (data.shoppingItems) setShoppingItems(data.shoppingItems);
+    if (data.groceryItems) setGroceryItems(data.groceryItems);
+    if (data.podcastItems) setPodcastItems(data.podcastItems);
+    if (data.medicationItems) setMedicationItems(data.medicationItems);
+    
+    // Store reminders in local storage if present
+    if (data.reminders) {
+      localStorage.setItem('reminders', JSON.stringify(data.reminders));
+    }
+    
+    // Handle calendar events if present
+    if (data.calendar_events) {
+      data.calendar_events.forEach((evt: EventItem) => upsertEvent(evt));
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 w-full overflow-x-hidden">
@@ -298,6 +529,61 @@ function App() {
                     </div>
                   </div>
                 ))}
+
+                {/* New Data Management Section */}
+                <div className="flex-1 sm:border-l">
+                  <div className="pl-4 pr-2 py-2 font-semibold text-gray-500 text-sm uppercase tracking-wider">
+                    Data
+                  </div>
+                  <div className="px-2 pb-2">
+                    <button
+                      onClick={exportCurrentTasks}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
+                    >
+                      <ClipboardCopy className="w-5 h-5 flex-shrink-0" />
+                      {!isCompactView && (
+                        <span className="ml-3 truncate">Export Tasks</span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
+                    >
+                      <Database className="w-5 h-5 flex-shrink-0" />
+                      {!isCompactView && (
+                        <span className="ml-3 truncate">Paste JSON</span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={downloadData}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
+                    >
+                      <Download className="w-5 h-5 flex-shrink-0" />
+                      {!isCompactView && (
+                        <span className="ml-3 truncate">Download Data</span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
+                    >
+                      <Upload className="w-5 h-5 flex-shrink-0" />
+                      {!isCompactView && (
+                        <span className="ml-3 truncate">Upload Data</span>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                    </button>
+                  </div>
+                </div>
               </div>
             </nav>
           </header>
@@ -405,11 +691,6 @@ function App() {
                   />
                 </div>
               } />
-              <Route path="/deadlines" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <DeadlineTimeline deadlines={deadlines} onUpdate={setDeadlines} />
-                </div>
-              } />
               <Route path="/medications" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
                   <MedicationList
@@ -418,96 +699,206 @@ function App() {
                   />
                 </div>
               } />
-              <Route path="/data" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <DataManagement
-                    templateTasks={templateTasks}
-                    checklists={checklists}
-                    todos={todos}
-                    groceryItems={groceryItems}
-                    shoppingItems={shoppingItems}
-                    readingItems={readingItems}
-                    entertainmentItems={entertainmentItems}
-                    videoItems={videoItems}
-                    podcastItems={podcastItems}
-                    deadlines={deadlines}
-                    medicationItems={medicationItems}
-                    bookItems={bookItems}
-                    todoCategories={todoCategories}
-                    readingCategories={readingCategories}
-                    bookCategories={bookCategories}
-                    videoCategories={videoCategories}
-                    selectedDay={selectedDay}
-                    onImportData={data => {
-                      if (data.todos) {
-                        setTodos(prev => {
-                          const map = new Map(prev.map(t => [t.id, { ...t }]));
-                          data.todos.forEach(nt => {
-                            if (map.has(nt.id)) map.set(nt.id, { ...map.get(nt.id), ...nt });
-                            else map.set(nt.id, nt);
-                          });
-                          return Array.from(map.values());
-                        });
-                      }
-
-                      if (data.deadlines) {
-                        setDeadlines(prev => {
-                          const map = new Map(prev.map(d => [d.id, { ...d }]));
-                          (data.deadlines || []).forEach((nd: DeadlineItem) => {
-                            if (map.has(nd.id)) map.set(nd.id, { ...map.get(nd.id), ...nd });
-                            else map.set(nd.id, nd);
-                          });
-                          return Array.from(map.values());
-                        });
-                      }
-
-                      if (data.templateTasks) setTemplateTasks(data.templateTasks);
-                      if (data.checklists) setChecklists(data.checklists);
-                      if (data.medicationItems) setMedicationItems(data.medicationItems);
-                      if (data.readingItems) setReadingItems(data.readingItems);
-                      if (data.bookItems) setBookItems(data.bookItems);
-                      if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
-                      if (data.videoItems) setVideoItems(data.videoItems);
-                      if (data.shoppingItems) setShoppingItems(data.shoppingItems);
-                      if (data.groceryItems) setGroceryItems(data.groceryItems);
-                      if (data.podcastItems) setPodcastItems(data.podcastItems);
-                      
-                      // Handle category imports
-                      if (data.todoCategories) setTodoCategories(data.todoCategories);
-                      if (data.readingCategories) setReadingCategories(data.readingCategories);
-                      if (data.bookCategories) setBookCategories(data.bookCategories);
-                      if (data.videoCategories) setVideoCategories(data.videoCategories);
-                    }}
-                    onResetApp={() => {
-                      if (confirm("Are you sure you want to reset all data? This cannot be undone.")) {
-                        setTemplateTasks([]);
-                        setChecklists({});
-                        setTodos([]);
-                        setTodoCategories([]);
-                        setReadingCategories([]);
-                        setBookCategories([]);
-                        setVideoCategories([]);
-                        setReadingItems([]);
-                        setBookItems([]);
-                        setEntertainmentItems([]);
-                        setVideoItems([]);
-                        setShoppingItems([]);
-                        setGroceryItems([]);
-                        setPodcastItems([]);
-                        setDeadlines([]);
-                        setMedicationItems([]);
-                        localStorage.removeItem('react-task-manager-app');
-                        localStorage.removeItem('medications');
-                        localStorage.removeItem('reminders');
-                      }
-                    }}
-                    isShowingDemo={false}
-                    onLoadDemo={() => {}}
-                    onClearDemo={() => {}}
-                  />
-                </div>
-              } />
             </Routes>
+
+            {showTooltip && (
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-50 transition-opacity">
+                {showTooltip}
+              </div>
+            )}
+
+            {/* Import JSON Modal */}
+            {isImportModalOpen && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-medium">Import JSON Data</h3>
+                    <button 
+                      onClick={() => {
+                        setIsImportModalOpen(false);
+                        setImportText('');
+                        setImportError('');
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <span className="sr-only">Close</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <textarea
+                        value={importText}
+                        onChange={(e) => setImportText(e.target.value)}
+                        className="w-full border rounded p-2 mb-2 h-[500px]"
+                        placeholder="Paste your JSON here..."
+                      />
+                      
+                      {importError && (
+                        <div className="text-red-500">{importError}</div>
+                      )}
+                    </div>
+                    
+                    <div className="border rounded p-4 h-[500px] overflow-y-auto">
+                      <div className="flex justify-between items-center mb-2">
+                        <h4 className="font-medium">JSON Format Documentation</h4>
+                        <button
+                          onClick={() => {
+                            const categoryList = todoCategories
+                              .map(cat => `"${cat.name}"`)
+                              .join(', ');
+                              
+                            const documentationText = `JSON FORMAT DOCUMENTATION
+
+IMPORTANT: For todos, please use ONLY the existing categories listed below.
+
+To-Do Categories (${todoCategories.length}): ${categoryList || "None defined yet"}
+
+Tasks (todos):
+"todos": [
+  {
+    "id": 1234567890,
+    "text": "Task description",
+    "deadline": "YYYY-MM-DD",     // Optional
+    "time": "HH:MM",              // Optional
+    "completed": false,           // Optional, default: false
+    "completedAt": null,          // Optional, set when completed
+    "dateAdded": "ISO-timestamp", // Required
+    "category": "Category name",  // Optional - MUST match one of the listed categories above
+    "parentCategory": "work" | "personal" // Optional
+  }
+]
+
+Calendar Events:
+"calendar_events": [
+  {
+    "title": "Event name",
+    "start_ts": "ISO-timestamp", // Required
+    "end_ts": "ISO-timestamp",   // Required
+    "notes": "Additional info",  // Optional
+    "recurrence": ""             // Optional, format: 'weekly:MO,TU,WE' 
+  }
+]
+
+Categories:
+"todoCategories": [
+  {
+    "name": "Category name",
+    "color": "#RRGGBB",
+    "parentCategory": "work" | "personal"
+  }
+]
+
+Reminders:
+"reminders": [
+  {
+    "id": "unique-string-id",
+    "text": "Reminder text",
+    "date": "YYYY-MM-DD",              // Required
+    "time": "HH:MM",                    // Optional
+    "recurrence": "none|daily|weekly|monthly|yearly", // Optional
+    "completed": false,                 // Required
+    "completedAt": null,                // Optional
+    "notes": "Additional notes"         // Optional
+  }
+]`;
+                            copyToClipboard(documentationText, "Documentation copied to clipboard!");
+                          }}
+                          className="px-2 py-1 bg-gray-200 text-xs text-gray-800 rounded hover:bg-gray-300 flex items-center"
+                        >
+                          Copy Instructions
+                        </button>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        The JSON data should be an object containing one or more of these arrays. 
+                        Please use ONLY the existing to-do categories listed below:
+                      </p>
+                      
+                      <div className="space-y-2 text-sm mb-4">
+                        <div>
+                          <h5 className="font-semibold text-indigo-600">Available Categories</h5>
+                          <div className="bg-gray-50 p-2 rounded text-xs">
+                            <p><strong>To-Do Categories:</strong> {todoCategories.length > 0 ? 
+                              todoCategories.map(cat => cat.name).join(', ') : 
+                              "None defined yet"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-6 text-sm">
+                        <div>
+                          <h5 className="font-semibold text-indigo-600">Tasks (todos)</h5>
+                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
+{`"todos": [
+  {
+    "id": 1234567890,
+    "text": "Task description",
+    "deadline": "YYYY-MM-DD",     // Optional
+    "time": "HH:MM",              // Optional
+    "completed": false,           // Optional, default: false
+    "completedAt": null,          // Optional, set when completed
+    "dateAdded": "ISO-timestamp", // Required
+    "category": "Category name",  // Optional - MUST match one of the listed categories above
+    "parentCategory": "work" | "personal" // Optional
+  }
+]`}
+                          </pre>
+                        </div>
+                        
+                        <div>
+                          <h5 className="font-semibold text-indigo-600">Calendar Events</h5>
+                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
+{`"calendar_events": [
+  {
+    "title": "Event name",
+    "start_ts": "ISO-timestamp", // Required
+    "end_ts": "ISO-timestamp",   // Required
+    "notes": "Additional info",  // Optional
+    "recurrence": ""             // Optional, format: 'weekly:MO,TU,WE' 
+  }
+]`}
+                          </pre>
+                        </div>
+
+                        <div>
+                          <h5 className="font-semibold text-indigo-600">Categories</h5>
+                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
+{`"todoCategories": [
+  {
+    "name": "Category name",
+    "color": "#RRGGBB",
+    "parentCategory": "work" | "personal"
+  }
+]`}
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setIsImportModalOpen(false);
+                        setImportText('');
+                        setImportError('');
+                      }}
+                      className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleImportText}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                    >
+                      Import
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </main>
         </div>
       </div>
