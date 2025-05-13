@@ -344,7 +344,10 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
           completed: typeof item.completed === 'boolean' ? item.completed : false,
           completedAt: item.completed && item.completedAt ? item.completedAt : null,
           dateAdded: toStorage(new Date()),
-          category: typeof item.category === 'string' ? item.category : undefined
+          category: typeof item.category === 'string' ? item.category : undefined,
+          parentCategory: typeof item.parentCategory === 'string' && 
+                         (item.parentCategory === 'work' || item.parentCategory === 'personal') ? 
+                         item.parentCategory : undefined
         };
         
         return newTodo;
@@ -823,7 +826,8 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     "deadline": "YYYY-MM-DD", // optional
     "time": "HH:MM", // optional
     "completed": true|false, // optional, default: false
-    "category": "Category name" // optional
+    "category": "Category name", // optional
+    "parentCategory": "work" | "personal" // optional
   },
   ...
 ]`}

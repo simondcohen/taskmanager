@@ -41,6 +41,8 @@ export function CategoryManager({ categories, onUpdateCategories }: CategoryMana
   const handleAddCategory = () => {
     if (!newCategory.trim()) return;
     
+    console.log('Adding category:', newCategory.trim(), 'with parent:', newParentCategory);
+    
     // Don't add duplicates
     if (categories.some(cat => cat.name === newCategory.trim())) {
       alert('This category already exists.');
@@ -56,11 +58,21 @@ export function CategoryManager({ categories, onUpdateCategories }: CategoryMana
       ? availableColors[0] 
       : colorPalette[categories.length % colorPalette.length];
     
-    onUpdateCategories([...categories, { 
+    console.log('Creating new category with color:', newColor);
+    
+    const newCategoryObj = { 
       name: newCategory.trim(), 
       color: newColor,
       parentCategory: newParentCategory
-    }]);
+    };
+    
+    console.log('New category object:', newCategoryObj);
+    console.log('Current categories:', categories);
+    
+    const updatedCategories = [...categories, newCategoryObj];
+    console.log('Updated categories:', updatedCategories);
+    
+    onUpdateCategories(updatedCategories);
     setNewCategory('');
   };
 

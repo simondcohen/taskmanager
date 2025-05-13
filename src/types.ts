@@ -106,14 +106,6 @@ export interface MedicationItem {
   timestamp: string; // ISO string for sorting
 }
 
-export interface DeadlineItem { 
-  id: string; 
-  title: string; 
-  dueDate: string; 
-  notes?: string;
-  completed?: boolean;
-}
-
 export type Tab = 
   | 'daily' 
   | 'todos' 
@@ -124,7 +116,6 @@ export type Tab =
   | 'shopping'
   | 'grocery'
   | 'podcasts'
-  | 'deadlines'
   | 'medications'
   | 'calendar'
   | 'books';

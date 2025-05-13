@@ -1,0 +1,391 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { BlockItem } from '../types';
+import { Clock, Plus, Edit2, Trash2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
+
+interface BlocksListProps {
+  items: BlockItem[];
+  onUpdateItems: (items: BlockItem[]) => void;
+}
+
+export const BlocksList: React.FC<BlocksListProps> = ({ items, onUpdateItems }) => {
+  const [newBlockName, setNewBlockName] = useState('');
+  const [newStartTime, setNewStartTime] = useState('');
+  const [newEndTime, setNewEndTime] = useState('');
+  const [newNotes, setNewNotes] = useState('');
+  const [isAddingBlock, setIsAddingBlock] = useState(false);
+  const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update current time every second
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
+  const handleAddBlock = () => {
+    if (!newBlockName.trim() || !newStartTime || !newEndTime) return;
+
+    const startDate = new Date();
+    const endDate = new Date();
+    
+    const [startHours, startMinutes] = newStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = newEndTime.split(':').map(Number);
+    
+    startDate.setHours(startHours, startMinutes, 0, 0);
+    endDate.setHours(endHours, endMinutes, 0, 0);
+
+    // If end time is earlier than start time, assume it's for the next day
+    if (endDate < startDate) {
+      endDate.setDate(endDate.getDate() + 1);
+    }
+
+    const newBlock: BlockItem = {
+      id: `block-${Date.now()}`,
+      name: newBlockName,
+      startTime: startDate.toISOString(),
+      endTime: endDate.toISOString(),
+      inProgress: false,
+      completed: false,
+      notes: newNotes,
+      dateAdded: new Date().toISOString()
+    };
+
+    onUpdateItems([...items, newBlock]);
+    
+    // Reset form
+    setNewBlockName('');
+    setNewStartTime('');
+    setNewEndTime('');
+    setNewNotes('');
+    setIsAddingBlock(false);
+  };
+
+  const handleUpdateBlock = (updatedBlock: BlockItem) => {
+    onUpdateItems(items.map(item => item.id === updatedBlock.id ? updatedBlock : item));
+    setEditingBlockId(null);
+  };
+
+  const handleDeleteBlock = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this block?')) {
+      onUpdateItems(items.filter(item => item.id !== id));
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const calculateTimeRemaining = (endTimeStr: string) => {
+    const endTime = new Date(endTimeStr);
+    const diff = endTime.getTime() - currentTime.getTime();
+    
+    if (diff <= 0) return 'Completed';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const calculateProgress = (startTimeStr: string, endTimeStr: string) => {
+    const startTime = new Date(startTimeStr).getTime();
+    const endTime = new Date(endTimeStr).getTime();
+    const now = currentTime.getTime();
+    
+    if (now < startTime) return 0;
+    if (now > endTime) return 100;
+    
+    const totalDuration = endTime - startTime;
+    const elapsed = now - startTime;
+    return Math.floor((elapsed / totalDuration) * 100);
+  };
+
+  // Check and update block status
+  useEffect(() => {
+    const now = new Date();
+    const updatedItems = items.map(item => {
+      const startTime = new Date(item.startTime);
+      const endTime = new Date(item.endTime);
+      
+      const inProgress = now >= startTime && now < endTime;
+      const completed = now >= endTime;
+      
+      if (item.inProgress !== inProgress || item.completed !== completed) {
+        return { ...item, inProgress, completed };
+      }
+      return item;
+    });
+    
+    if (JSON.stringify(updatedItems) !== JSON.stringify(items)) {
+      onUpdateItems(updatedItems);
+    }
+  }, [currentTime, items, onUpdateItems]);
+
+  // Sort blocks into active, upcoming, and completed
+  const activeBlocks = items.filter(block => block.inProgress && !block.completed);
+  const upcomingBlocks = items.filter(block => !block.inProgress && !block.completed);
+  const completedBlocks = items.filter(block => block.completed);
+
+  // Filter completed blocks to only show ones from today
+  const todayCompletedBlocks = completedBlocks.filter(block => {
+    const completedDate = new Date(block.endTime);
+    const today = new Date();
+    return completedDate.getDate() === today.getDate() &&
+           completedDate.getMonth() === today.getMonth() &&
+           completedDate.getFullYear() === today.getFullYear();
+  });
+
+  return (
+    <div className="w-full max-w-3xl mx-auto p-4">
+      <div className="mb-6 flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-indigo-700">Tech Blocker Dashboard</h1>
+        <button
+          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          onClick={() => setIsAddingBlock(!isAddingBlock)}
+        >
+          {isAddingBlock ? (
+            <>
+              <X size={18} />
+              Cancel
+            </>
+          ) : (
+            <>
+              <Plus size={18} />
+              Add New Block
+            </>
+          )}
+        </button>
+      </div>
+
+      {isAddingBlock && (
+        <div className="bg-white p-4 rounded-lg shadow-md mb-6 border border-indigo-100">
+          <h2 className="text-lg font-semibold mb-4 text-indigo-600">Add New Block</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Block Name</label>
+              <input
+                type="text"
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newBlockName}
+                onChange={(e) => setNewBlockName(e.target.value)}
+                placeholder="e.g., Deep Work Session"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                <input
+                  type="time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={newStartTime}
+                  onChange={(e) => setNewStartTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                <input
+                  type="time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={newEndTime}
+                  onChange={(e) => setNewEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                rows={3}
+                placeholder="Add any additional details about this block"
+              />
+            </div>
+            <div className="flex justify-end">
+              <button
+                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+                onClick={handleAddBlock}
+              >
+                Create Block
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeBlocks.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 text-indigo-600 flex items-center gap-2">
+            <Clock size={20} />
+            Active Blocks
+          </h2>
+          <div className="space-y-4">
+            {activeBlocks.map(block => (
+              <div key={block.id} className="bg-white rounded-lg shadow-md border-l-4 border-green-500 p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-lg font-semibold">{block.name}</h3>
+                  <div className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                    In Progress
+                  </div>
+                </div>
+                <div className="mb-2 text-lg font-bold">
+                  {calculateTimeRemaining(block.endTime)}
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                  <div 
+                    className="bg-green-600 h-2.5 rounded-full" 
+                    style={{ width: `${calculateProgress(block.startTime, block.endTime)}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between items-center text-sm text-gray-500">
+                  <span>{formatTime(block.startTime)}</span>
+                  <span>{formatTime(block.endTime)}</span>
+                </div>
+                {block.notes && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    <p>{block.notes}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {upcomingBlocks.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 text-indigo-600 flex items-center gap-2">
+            <ChevronUp size={20} />
+            Upcoming Blocks
+          </h2>
+          <div className="space-y-3">
+            {upcomingBlocks.map(block => (
+              <div key={block.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium">{block.name}</h3>
+                  <div className="flex gap-2">
+                    <button
+                      className="text-gray-500 hover:text-indigo-600"
+                      onClick={() => setEditingBlockId(block.id === editingBlockId ? null : block.id)}
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      className="text-gray-500 hover:text-red-600"
+                      onClick={() => handleDeleteBlock(block.id)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500 mt-1">
+                  {formatTime(block.startTime)} - {formatTime(block.endTime)}
+                </div>
+                {block.notes && <div className="mt-1 text-sm text-gray-600">{block.notes}</div>}
+                
+                {editingBlockId === block.id && (
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Block Name</label>
+                        <input
+                          type="text"
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          value={block.name}
+                          onChange={(e) => handleUpdateBlock({ ...block, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Start Time</label>
+                          <input
+                            type="time"
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            value={new Date(block.startTime).toTimeString().slice(0, 5)}
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const newDate = new Date(block.startTime);
+                              newDate.setHours(hours, minutes, 0, 0);
+                              handleUpdateBlock({ ...block, startTime: newDate.toISOString() });
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">End Time</label>
+                          <input
+                            type="time"
+                            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            value={new Date(block.endTime).toTimeString().slice(0, 5)}
+                            onChange={(e) => {
+                              const [hours, minutes] = e.target.value.split(':').map(Number);
+                              const newDate = new Date(block.endTime);
+                              newDate.setHours(hours, minutes, 0, 0);
+                              handleUpdateBlock({ ...block, endTime: newDate.toISOString() });
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                          value={block.notes || ''}
+                          onChange={(e) => handleUpdateBlock({ ...block, notes: e.target.value })}
+                          rows={2}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {todayCompletedBlocks.length > 0 && (
+        <section>
+          <h2 className="text-xl font-semibold mb-4 text-indigo-600 flex items-center gap-2">
+            <ChevronDown size={20} />
+            Completed Today
+          </h2>
+          <div className="space-y-3">
+            {todayCompletedBlocks.map(block => (
+              <div key={block.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium text-gray-500 line-through">{block.name}</h3>
+                  <div className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+                    Completed
+                  </div>
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {formatTime(block.startTime)} - {formatTime(block.endTime)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {activeBlocks.length === 0 && upcomingBlocks.length === 0 && todayCompletedBlocks.length === 0 && (
+        <div className="text-center py-10">
+          <Clock className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+          <h3 className="text-xl font-medium text-gray-600 mb-2">No Blocks Yet</h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            Create your first block by clicking the "Add New Block" button to start tracking your focus sessions.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}; 

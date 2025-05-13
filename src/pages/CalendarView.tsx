@@ -123,6 +123,7 @@ export default function CalendarView() {
         
         // Create a new event with required fields
         const newEvent: EventItem = {
+          id: undefined, // Will be assigned by upsertEvent
           title: item.title,
           start_ts: item.start_ts,
           end_ts: item.end_ts,
@@ -134,10 +135,10 @@ export default function CalendarView() {
         validatedEvents.push(newEvent);
       }
       
-      // Add events to storage
+      // Add events to storage without clearing existing ones
       let addedCount = 0;
       for (const event of validatedEvents) {
-        upsertEvent(event);
+        upsertEvent(event); // This adds the event without replacing existing ones
         addedCount++;
       }
       
