@@ -721,7 +721,14 @@ function App() {
                         <h4 className="font-medium">JSON Format Documentation</h4>
                         <button
                           onClick={() => {
-                            const categoryList = todoCategories
+                            // Group categories by parent category
+                            const workCategories = todoCategories
+                              .filter(cat => cat.parentCategory === 'work')
+                              .map(cat => `"${cat.name}"`)
+                              .join(', ');
+                              
+                            const personalCategories = todoCategories
+                              .filter(cat => cat.parentCategory === 'personal')
                               .map(cat => `"${cat.name}"`)
                               .join(', ');
                               
@@ -729,7 +736,9 @@ function App() {
 
 IMPORTANT: For todos, please use ONLY the existing categories listed below.
 
-To-Do Categories (${todoCategories.length}): ${categoryList || "None defined yet"}
+To-Do Categories (${todoCategories.length}):
+  - Work Categories: ${workCategories || "None defined"}
+  - Personal Categories: ${personalCategories || "None defined"}
 
 Tasks (todos):
 "todos": [
@@ -742,7 +751,7 @@ Tasks (todos):
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
     "category": "Category name",  // Optional - MUST match one of the listed categories above
-    "parentCategory": "work" | "personal" // Optional
+    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
   }
 ]
 
@@ -759,10 +768,28 @@ Calendar Events:
 
 Categories:
 "todoCategories": [
+  // Work categories
   {
-    "name": "Category name",
-    "color": "#RRGGBB",
-    "parentCategory": "work" | "personal"
+    "name": "Work Category 1",
+    "color": "#4F46E5",
+    "parentCategory": "work"
+  },
+  {
+    "name": "Work Category 2",
+    "color": "#0891B2",
+    "parentCategory": "work"
+  },
+  
+  // Personal categories
+  {
+    "name": "Personal Category 1",
+    "color": "#059669",
+    "parentCategory": "personal"
+  },
+  {
+    "name": "Personal Category 2",
+    "color": "#D97706",
+    "parentCategory": "personal"
   }
 ]
 
@@ -795,10 +822,26 @@ Reminders:
                         <div>
                           <h5 className="font-semibold text-indigo-600">Available Categories</h5>
                           <div className="bg-gray-50 p-2 rounded text-xs">
-                            <p><strong>To-Do Categories:</strong> {todoCategories.length > 0 ? 
-                              todoCategories.map(cat => cat.name).join(', ') : 
-                              "None defined yet"}
-                            </p>
+                            {todoCategories.length > 0 ? (
+                              <>
+                                <div className="mb-1">
+                                  <strong>Work Categories:</strong> {todoCategories
+                                    .filter(cat => cat.parentCategory === 'work')
+                                    .map(cat => cat.name)
+                                    .join(', ') || "None defined"
+                                  }
+                                </div>
+                                <div>
+                                  <strong>Personal Categories:</strong> {todoCategories
+                                    .filter(cat => cat.parentCategory === 'personal')
+                                    .map(cat => cat.name)
+                                    .join(', ') || "None defined"
+                                  }
+                                </div>
+                              </>
+                            ) : (
+                              "No categories defined yet"
+                            )}
                           </div>
                         </div>
                       </div>
@@ -817,7 +860,7 @@ Reminders:
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
     "category": "Category name",  // Optional - MUST match one of the listed categories above
-    "parentCategory": "work" | "personal" // Optional
+    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
   }
 ]`}
                           </pre>
@@ -842,10 +885,28 @@ Reminders:
                           <h5 className="font-semibold text-indigo-600">Categories</h5>
                           <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
 {`"todoCategories": [
+  // Work categories
   {
-    "name": "Category name",
-    "color": "#RRGGBB",
-    "parentCategory": "work" | "personal"
+    "name": "Work Category 1",
+    "color": "#4F46E5",
+    "parentCategory": "work"
+  },
+  {
+    "name": "Work Category 2",
+    "color": "#0891B2",
+    "parentCategory": "work"
+  },
+  
+  // Personal categories
+  {
+    "name": "Personal Category 1",
+    "color": "#059669",
+    "parentCategory": "personal"
+  },
+  {
+    "name": "Personal Category 2",
+    "color": "#D97706",
+    "parentCategory": "personal"
   }
 ]`}
                           </pre>

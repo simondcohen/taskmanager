@@ -382,7 +382,7 @@ Tasks (todos):
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
     "category": "Category name",  // Optional
-    "parentCategory": "work" | "personal" // Optional
+    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
   }
 ]
 
@@ -399,10 +399,28 @@ Calendar Events:
 
 Categories:
 "todoCategories": [  // Also: readingCategories, bookCategories, videoCategories
+  // Work categories
   {
-    "name": "Category name",
-    "color": "#RRGGBB",
-    "parentCategory": "work" | "personal"
+    "name": "Work Category 1",
+    "color": "#4F46E5",
+    "parentCategory": "work"
+  },
+  {
+    "name": "Work Category 2",
+    "color": "#0891B2",
+    "parentCategory": "work"
+  },
+  
+  // Personal categories
+  {
+    "name": "Personal Category 1",
+    "color": "#059669",
+    "parentCategory": "personal"
+  },
+  {
+    "name": "Personal Category 2",
+    "color": "#D97706",
+    "parentCategory": "personal"
   }
 ]
 
@@ -552,7 +570,7 @@ Reminders:
     "completedAt": null,          // Optional, set when completed
     "dateAdded": "ISO-timestamp", // Required
     "category": "Category name",  // Optional
-    "parentCategory": "work" | "personal" // Optional
+    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
   }
 ]`}
                     </pre>
@@ -577,10 +595,28 @@ Reminders:
                     <h5 className="font-semibold text-indigo-600">Categories</h5>
                     <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
 {`"todoCategories": [  // Also: readingCategories, bookCategories, videoCategories
+  // Work categories
   {
-    "name": "Category name",
-    "color": "#RRGGBB",
-    "parentCategory": "work" | "personal"
+    "name": "Work Category 1",
+    "color": "#4F46E5",
+    "parentCategory": "work"
+  },
+  {
+    "name": "Work Category 2",
+    "color": "#0891B2",
+    "parentCategory": "work"
+  },
+  
+  // Personal categories
+  {
+    "name": "Personal Category 1",
+    "color": "#059669",
+    "parentCategory": "personal"
+  },
+  {
+    "name": "Personal Category 2",
+    "color": "#D97706",
+    "parentCategory": "personal"
   }
 ]`}
                     </pre>
