@@ -102,8 +102,32 @@ function App() {
 
   const [templateTasks, setTemplateTasks] = useState<Task[]>([]);
   const [checklists, setChecklists] = useState<DailyChecklists>({});
-  const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [todoCategories, setTodoCategories] = useState<Category[]>([]);
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    const savedItems = localStorage.getItem('react-task-manager-app');
+    if (savedItems) {
+      try {
+        const parsedData = JSON.parse(savedItems);
+        return parsedData.todos || [];
+      } catch (e) {
+        console.error('Error parsing todos from localStorage:', e);
+        return [];
+      }
+    }
+    return [];
+  });
+  const [todoCategories, setTodoCategories] = useState<Category[]>(() => {
+    const savedItems = localStorage.getItem('react-task-manager-app');
+    if (savedItems) {
+      try {
+        const parsedData = JSON.parse(savedItems);
+        return parsedData.todoCategories || [];
+      } catch (e) {
+        console.error('Error parsing todoCategories from localStorage:', e);
+        return [];
+      }
+    }
+    return [];
+  });
   const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
   const [bookItems, setBookItems] = useState<BookItem[]>([]);
   const [entertainmentItems, setEntertainmentItems] = useState<EntertainmentItem[]>([]);
@@ -139,41 +163,8 @@ function App() {
         setTemplateTasks(parsedData.templateTasks || []);
         setChecklists(parsedData.checklists || {});
         
-        // Handle the case where we're upgrading from a version without completedAt
-        const existingTodos = parsedData.todos || [];
-        const upgradedTodos = existingTodos.map((todo: any) => {
-          // If a todo is completed but doesn't have completedAt, add it
-          if (todo.completed && !todo.completedAt) {
-            return {
-              ...todo,
-              // Use a timestamp from half an hour ago to prevent immediate hiding
-              completedAt: toStorage(new Date(Date.now() - 30 * 60 * 1000))
-            };
-          }
-          // Otherwise just ensure the completedAt field exists
-          if (!('completedAt' in todo)) {
-            return {
-              ...todo,
-              completedAt: null
-            };
-          }
-          return todo;
-        });
-        
-        // Update categories to have parentCategory if needed
-        const existingCategories = parsedData.todoCategories || [];
-        const upgradedCategories = existingCategories.map((cat: any) => {
-          if (!cat.parentCategory) {
-            return {
-              ...cat,
-              parentCategory: 'work' // Default to 'work' for existing categories
-            };
-          }
-          return cat;
-        });
-        
-        setTodos(upgradedTodos);
-        setTodoCategories(upgradedCategories);
+        // No need to set todos again as they're loaded in useState initialization
+        // No need to set todoCategories again as they're loaded in useState initialization
         
         const upgradeOtherCategories = (categories: any[]) => {
           return categories.map((cat: any) => {
@@ -453,28 +444,13 @@ function App() {
   };
   
   const handleImportData = (data: any) => {
-    if (data.templateTasks) setTemplateTasks(data.templateTasks);
-    if (data.checklists) setChecklists(data.checklists);
-    if (data.todos) setTodos(data.todos);
-    if (data.todoCategories) setTodoCategories(data.todoCategories);
-    if (data.readingCategories) setReadingCategories(data.readingCategories);
-    if (data.bookCategories) setBookCategories(data.bookCategories);
-    if (data.videoCategories) setVideoCategories(data.videoCategories);
-    if (data.readingItems) setReadingItems(data.readingItems);
-    if (data.bookItems) setBookItems(data.bookItems);
-    if (data.entertainmentItems) setEntertainmentItems(data.entertainmentItems);
-    if (data.videoItems) setVideoItems(data.videoItems);
-    if (data.shoppingItems) setShoppingItems(data.shoppingItems);
-    if (data.groceryItems) setGroceryItems(data.groceryItems);
-    if (data.podcastItems) setPodcastItems(data.podcastItems);
-    if (data.medicationItems) setMedicationItems(data.medicationItems);
-    
-    // Store reminders in local storage if present
-    if (data.reminders) {
-      localStorage.setItem('reminders', JSON.stringify(data.reminders));
+    // Only import todos and merge with existing ones instead of replacing
+    if (data.todos) {
+      // Merge new todos with existing ones
+      setTodos(prevTodos => [...prevTodos, ...data.todos]);
     }
     
-    // Handle calendar events if present
+    // Handle calendar events if present - already merges by default
     if (data.calendar_events) {
       data.calendar_events.forEach((evt: EventItem) => upsertEvent(evt));
     }
