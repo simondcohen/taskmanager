@@ -58,7 +58,11 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         console.error('Invalid date components:', { year, month, day });
         return null;
       }
-      return new Date(year, month - 1, day, 0, 0, 0, 0);
+      // Create date with local timezone and set time to 00:00:00
+      const date = new Date();
+      date.setFullYear(year, month - 1, day);
+      date.setHours(0, 0, 0, 0);
+      return date;
     } catch (err) {
       console.error('Error parsing date:', dateStr, err);
       return null;
