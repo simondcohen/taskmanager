@@ -58,6 +58,14 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         console.error('Invalid date components:', { year, month, day });
         return null;
       }
+      
+      // Additional validation for month-specific day limits
+      const daysInMonth = new Date(year, month, 0).getDate();
+      if (day > daysInMonth) {
+        console.error(`Invalid day ${day} for month ${month}`);
+        return null;
+      }
+      
       // Create date with local timezone and set time to 00:00:00
       const date = new Date();
       date.setFullYear(year, month - 1, day);
@@ -69,8 +77,16 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     }
   }
 
+  function validateTimeInput(timeStr: string): boolean {
+    if (!timeStr) return true; // Empty is valid (optional)
+    
+    // Check format HH:MM
+    const timePattern = /^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/;
+    return timePattern.test(timeStr);
+  }
+
   function formatTimeDisplay(timeStr: string) {
-    if (!timeStr) return '';
+    if (!timeStr || !validateTimeInput(timeStr)) return '';
     try {
       const [hours, minutes] = timeStr.split(':');
       const date = new Date();
@@ -82,7 +98,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
         hour12: true
       });
     } catch (err) {
-      return timeStr;
+      return '';
     }
   }
 
@@ -216,10 +232,11 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const addTodo = () => {
     if (!newTodoText.trim()) return;
     
-    const lastTodoId = todos.length > 0 ? Math.max(...todos.map(t => t.id)) : 0;
+    // Generate a more robust unique ID using timestamp + random number
+    const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
     
     const newTodo: TodoItem = {
-      id: lastTodoId + 1,
+      id: uniqueId,
       text: newTodoText.trim(),
       deadline: newTodoDeadline || null,
       time: newTodoTime || null,
@@ -376,6 +393,46 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
     }
   }
 
+  // Function to handle category updates, ensuring all todos are updated accordingly
+  const handleCategoryUpdate = (newCategories: Category[]) => {
+    // First update the categories
+    onUpdateCategories(newCategories);
+    
+    // Then check if any todos need to be updated due to category changes or deletions
+    const updatedTodos = todos.map(todo => {
+      // If the todo has a category
+      if (todo.category) {
+        // Check if the category still exists
+        const categoryExists = newCategories.some(cat => cat.name === todo.category);
+        
+        if (!categoryExists) {
+          // Category was deleted, remove it from the todo
+          return {
+            ...todo,
+            category: undefined,
+            parentCategory: undefined
+          };
+        } else {
+          // Category exists, but check if its parent category changed
+          const category = newCategories.find(cat => cat.name === todo.category);
+          if (category && category.parentCategory !== todo.parentCategory) {
+            // Update the parent category
+            return {
+              ...todo,
+              parentCategory: category.parentCategory
+            };
+          }
+        }
+      }
+      return todo;
+    });
+    
+    // Only update todos if changes were made
+    if (JSON.stringify(updatedTodos) !== JSON.stringify(todos)) {
+      onUpdateTodos(updatedTodos);
+    }
+  };
+
   return (
     <section className="bg-white rounded-lg shadow p-6">
       <div className="flex justify-between items-center mb-6">
@@ -477,7 +534,12 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
               <input
                 type="time"
                 value={newTodoTime}
-                onChange={(e) => setNewTodoTime(e.target.value)}
+                onChange={(e) => {
+                  const timeValue = e.target.value;
+                  if (!timeValue || validateTimeInput(timeValue)) {
+                    setNewTodoTime(timeValue);
+                  }
+                }}
                 className="w-full p-2 border border-indigo-200 rounded-lg"
               />
             </div>
@@ -697,7 +759,12 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
                         <input
                           type="time"
                           value={editTime}
-                          onChange={(e) => setEditTime(e.target.value)}
+                          onChange={(e) => {
+                            const timeValue = e.target.value;
+                            if (!timeValue || validateTimeInput(timeValue)) {
+                              setEditTime(timeValue);
+                            }
+                          }}
                           className="p-2 border rounded"
                         />
                         <select
@@ -807,7 +874,7 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
       <div className="mt-10 pt-6 border-t border-gray-200">
         <CategoryManager 
           categories={categories}
-          onUpdateCategories={onUpdateCategories}
+          onUpdateCategories={handleCategoryUpdate}
         />
       </div>
 
