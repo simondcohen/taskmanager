@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { Calendar, CheckSquare, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
+import { CheckSquare, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { TodoList } from './components/TodoList';
 import { ReadingList } from './components/ReadingList';
@@ -11,11 +11,9 @@ import { GroceryList } from './components/GroceryList';
 import { PodcastList } from './components/PodcastList';
 import { MedicationList } from './components/MedicationList';
 import { BooksList } from './components/BooksList';
-import CalendarView from './pages/CalendarView';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, MedicationItem, BookItem, EventItem } from './types';
+import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, MedicationItem, BookItem } from './types';
 import { Category } from './components/CategoryManager';
 import { toStorage, fromStorage, formatDateOnly } from './utils/time';
-import { listEvents, upsertEvent } from './storage/eventStore';
 
 // Group tabs by category
 const tabGroups = [
@@ -23,7 +21,6 @@ const tabGroups = [
     name: 'Tasks',
     tabs: [
       { id: 'todos', label: 'To-Do Items', icon: ListTodo },
-      { id: 'calendar', label: 'Calendar', icon: Calendar },
     ],
   },
   {
@@ -261,10 +258,6 @@ function App() {
       videoItems,
       podcastItems,
       medicationItems,
-      // Include reminders if they exist in the app context
-      reminders: window.localStorage.getItem('reminders') ? 
-        JSON.parse(window.localStorage.getItem('reminders') || '[]') : 
-        []
     };
     const jsonString = JSON.stringify(dataToExport, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -314,7 +307,6 @@ function App() {
       'todoCategories', 'readingCategories', 'bookCategories', 'videoCategories',
       'readingItems', 'bookItems', 'groceryItems', 'shoppingItems', 
       'entertainmentItems', 'videoItems', 'podcastItems', 'medicationItems', 
-      'reminders'
     ];
 
     for (const type of arrayTypes) {
@@ -393,34 +385,6 @@ function App() {
     // Get incomplete tasks
     const incompleteTasks = todos.filter(todo => !todo.completed);
 
-    // Get calendar events
-    const calendarEvents = listEvents();
-
-    // Process events to include only future events and handle recurring ones efficiently
-    const futureEvents = calendarEvents
-      .map((event: any) => {
-        const eventStartDate = new Date(event.start_ts);
-        // For non-recurring events, just check if they're in the future
-        if (!event.recurrence) {
-          return eventStartDate >= now ? event : null;
-        } 
-        
-        // For recurring events, format them efficiently
-        if (event.recurrence?.startsWith('weekly:')) {
-          const weekdays = event.recurrence.slice(7).split(',');
-          return {
-            ...event,
-            recurrence_details: {
-              frequency: 'weekly',
-              byweekday: weekdays
-            }
-          };
-        }
-        
-        return event;
-      })
-      .filter(Boolean); // Remove null values (past non-recurring events)
-
     // Get active categories
     const activeCategoriesMap = new Map();
     incompleteTasks.forEach(task => {
@@ -433,13 +397,12 @@ function App() {
     const data = {
       exportedAt: toStorage(new Date()),
       tasks: incompleteTasks,
-      categories: activeCategories,
-      calendar_events: futureEvents
+      categories: activeCategories
     };
 
     copyToClipboard(
       JSON.stringify(data, null, 2),
-      "Tasks & calendar copied to clipboard!"
+      "Tasks copied to clipboard!"
     );
   };
   
@@ -448,11 +411,6 @@ function App() {
     if (data.todos) {
       // Merge new todos with existing ones
       setTodos(prevTodos => [...prevTodos, ...data.todos]);
-    }
-    
-    // Handle calendar events if present - already merges by default
-    if (data.calendar_events) {
-      data.calendar_events.forEach((evt: EventItem) => upsertEvent(evt));
     }
   };
 
@@ -598,11 +556,6 @@ function App() {
                     categories={todoCategories}
                     onUpdateCategories={setTodoCategories}
                   />
-                </div>
-              } />
-              <Route path="/calendar" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <CalendarView />
                 </div>
               } />
               <Route path="/grocery" element={
@@ -755,17 +708,6 @@ Tasks (todos):
   }
 ]
 
-Calendar Events:
-"calendar_events": [
-  {
-    "title": "Event name",
-    "start_ts": "ISO-timestamp", // Required
-    "end_ts": "ISO-timestamp",   // Required
-    "notes": "Additional info",  // Optional
-    "recurrence": ""             // Optional, format: 'weekly:MO,TU,WE' 
-  }
-]
-
 Categories:
 "todoCategories": [
   // Work categories
@@ -790,20 +732,6 @@ Categories:
     "name": "Personal Category 2",
     "color": "#D97706",
     "parentCategory": "personal"
-  }
-]
-
-Reminders:
-"reminders": [
-  {
-    "id": "unique-string-id",
-    "text": "Reminder text",
-    "date": "YYYY-MM-DD",              // Required
-    "time": "HH:MM",                    // Optional
-    "recurrence": "none|daily|weekly|monthly|yearly", // Optional
-    "completed": false,                 // Required
-    "completedAt": null,                // Optional
-    "notes": "Additional notes"         // Optional
   }
 ]`;
                             copyToClipboard(documentationText, "Documentation copied to clipboard!");
@@ -866,21 +794,6 @@ Reminders:
                           </pre>
                         </div>
                         
-                        <div>
-                          <h5 className="font-semibold text-indigo-600">Calendar Events</h5>
-                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"calendar_events": [
-  {
-    "title": "Event name",
-    "start_ts": "ISO-timestamp", // Required
-    "end_ts": "ISO-timestamp",   // Required
-    "notes": "Additional info",  // Optional
-    "recurrence": ""             // Optional, format: 'weekly:MO,TU,WE' 
-  }
-]`}
-                          </pre>
-                        </div>
-
                         <div>
                           <h5 className="font-semibold text-indigo-600">Categories</h5>
                           <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">

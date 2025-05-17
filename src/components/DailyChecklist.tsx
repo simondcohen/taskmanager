@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Edit2, X, Save, MessageSquare } from 'lucide-react';
-import { Task, CalendarDay } from '../types';
+import { Plus, Edit2, X, Save, MessageSquare } from 'lucide-react';
+import { Task } from '../types';
 import { dateUtils } from '../utils/dateUtils';
-import { ChecklistCalendar } from './checklist/ChecklistCalendar';
 import { ChecklistProgress } from './checklist/ChecklistProgress';
 
 interface DailyChecklistProps {
@@ -22,9 +21,6 @@ export function DailyChecklist({
   onUpdateTemplate,
   onSelectDay,
 }: DailyChecklistProps) {
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [newTaskText, setNewTaskText] = useState('');
   const [editIndex, setEditIndex] = useState(-1);
   const [editText, setEditText] = useState('');
@@ -204,12 +200,12 @@ export function DailyChecklist({
   };
 
   const saveTaskNote = (index: number) => {
-    const taskText = checklists[selectedDay][index].text;
-    const updatedTasks = checklists[selectedDay].map(task => 
-      task.text === taskText
-        ? { ...task, notes: noteText.trim() || undefined }
-        : task
-    );
+    const updatedTasks = checklists[selectedDay].map((task, idx) => {
+      if (idx === index) {
+        return { ...task, notes: noteText.trim() };
+      }
+      return task;
+    });
     
     onUpdateChecklists({
       ...checklists,
@@ -220,244 +216,119 @@ export function DailyChecklist({
     setNoteText('');
   };
 
-  const navigateMonth = (direction: number) => {
-    const newDate = new Date(calendarYear, calendarMonth + direction, 1);
-    setCalendarMonth(newDate.getMonth());
-    setCalendarYear(newDate.getFullYear());
-  };
-
-  const getCalendarDays = (): CalendarDay[] => {
-    const days: CalendarDay[] = [];
-    const firstDay = new Date(calendarYear, calendarMonth, 1);
-    const lastDay = new Date(calendarYear, calendarMonth + 1, 0);
-    
-    // Add days from previous month
-    const firstDayOfWeek = firstDay.getDay();
-    if (firstDayOfWeek > 0) {
-      const prevMonth = new Date(calendarYear, calendarMonth, 0);
-      const prevMonthDays = prevMonth.getDate();
-      
-      for (let i = firstDayOfWeek - 1; i >= 0; i--) {
-        const day = prevMonthDays - i;
-        const date = new Date(calendarYear, calendarMonth - 1, day);
-        const dateStr = dateUtils.formatDate(date);
-        
-        days.push({
-          day,
-          date: dateStr,
-          currentMonth: false,
-          isToday: dateUtils.isToday(date),
-          isSelected: selectedDay === dateStr,
-          hasChecklist: checklists[dateStr] !== undefined
-        });
-      }
-    }
-    
-    // Add days from current month
-    for (let day = 1; day <= lastDay.getDate(); day++) {
-      const date = new Date(calendarYear, calendarMonth, day);
-      const dateStr = dateUtils.formatDate(date);
-      
-      days.push({
-        day,
-        date: dateStr,
-        currentMonth: true,
-        isToday: dateUtils.isToday(date),
-        isSelected: selectedDay === dateStr,
-        hasChecklist: checklists[dateStr] !== undefined
-      });
-    }
-    
-    // Add days from next month
-    const daysNeeded = 42 - days.length;
-    for (let day = 1; day <= daysNeeded; day++) {
-      const date = new Date(calendarYear, calendarMonth + 1, day);
-      const dateStr = dateUtils.formatDate(date);
-      
-      days.push({
-        day,
-        date: dateStr,
-        currentMonth: false,
-        isToday: dateUtils.isToday(date),
-        isSelected: selectedDay === dateStr,
-        hasChecklist: checklists[dateStr] !== undefined
-      });
-    }
-    
-    return days;
-  };
-
-  const selectCalendarDay = (day: CalendarDay) => {
-    const selectedDate = dateUtils.parseDate(day.date);
-    if (isFutureDate(selectedDate)) {
-      alert("Cannot select future dates");
-      return;
-    }
-
-    ensureChecklistForDate(day.date);
-    onSelectDay(day.date);
-    setShowCalendar(false);
-  };
-
-  const navigateDay = (direction: number) => {
-    if (!selectedDay) {
-      generateChecklistForToday();
-      return;
-    }
-
-    const currentDate = dateUtils.parseDate(selectedDay);
-    const newDate = dateUtils.addDays(currentDate, direction);
-
-    // Prevent navigation to future dates
-    if (direction > 0 && isFutureDate(newDate)) {
-      return;
-    }
-
-    const newDateStr = dateUtils.formatDate(newDate);
-    ensureChecklistForDate(newDateStr);
-    onSelectDay(newDateStr);
-  };
-
   return (
-    <div className="space-y-6">
-      <section className="bg-white rounded-lg shadow p-6">
+    <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
+      <section className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-indigo-700">Daily Habits</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            {selectedDay ? new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
+          </h2>
+          
           <button
             onClick={generateChecklistForToday}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            Go to Today
+            Today
           </button>
         </div>
-
-        <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={() => navigateDay(-1)}
-            className="p-2 hover:bg-gray-100 rounded"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          <ChecklistCalendar
-            selectedDay={selectedDay}
-            showCalendar={showCalendar}
-            setShowCalendar={setShowCalendar}
-            calendarMonth={calendarMonth}
-            calendarYear={calendarYear}
-            navigateMonth={navigateMonth}
-            calendarDays={getCalendarDays()}
-            onSelectDay={selectCalendarDay}
-            isFutureDate={isFutureDate}
-          />
-
-          <button 
-            onClick={() => navigateDay(1)}
-            className={`p-2 rounded ${
-              isFutureDate(dateUtils.addDays(dateUtils.parseDate(selectedDay), 1))
-                ? 'text-gray-300 cursor-not-allowed'
-                : 'hover:bg-gray-100'
-            }`}
-            disabled={isFutureDate(dateUtils.addDays(dateUtils.parseDate(selectedDay), 1))}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-
-        {selectedDay && checklists[selectedDay] && (
-          <ChecklistProgress tasks={checklists[selectedDay]} />
-        )}
 
         {selectedDay && checklists[selectedDay] ? (
           <>
-            <ul className="space-y-2 mt-4">
+            <div className="mb-6">
+              <ChecklistProgress tasks={checklists[selectedDay]} />
+            </div>
+            
+            <ul className="space-y-3 mb-6">
               {checklists[selectedDay].map((task, index) => (
-                <li
+                <li 
                   key={index}
-                  className="flex flex-col p-3 bg-gray-50 rounded border border-gray-200"
+                  className={`border rounded-lg overflow-hidden transition-all ${
+                    task.completed 
+                      ? 'border-green-200 bg-green-50' 
+                      : task.notCompleted 
+                        ? 'border-red-200 bg-red-50'
+                        : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50'
+                  }`}
                 >
-                  {editIndex === index ? (
-                    <div className="flex-1 flex gap-2">
+                  {noteIndex === index ? (
+                    <div className="p-4">
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        className="w-full border rounded p-2"
+                        placeholder="Add note about today's habit..."
+                        rows={3}
+                        autoFocus
+                      />
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => saveTaskNote(index)}
+                          className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                        >
+                          <Save className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : editIndex === index ? (
+                    <div className="p-4">
                       <input
                         type="text"
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="flex-1 p-2 border rounded"
-                        onKeyDown={(e) => e.key === 'Enter' && saveMasterTaskEdit(index)}
+                        className="w-full border rounded p-2"
+                        autoFocus
                       />
-                      <button
-                        onClick={() => saveMasterTaskEdit(index)}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                      >
-                        <Save className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditIndex(-1);
-                          setEditText('');
-                        }}
-                        className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : noteIndex === index ? (
-                    <div className="flex-1 flex flex-col gap-2">
-                      <textarea
-                        value={noteText}
-                        onChange={(e) => setNoteText(e.target.value)}
-                        className="w-full p-2 border rounded"
-                        rows={3}
-                        placeholder="Add a note for this day's habit..."
-                      />
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end mt-2">
                         <button
-                          onClick={() => saveTaskNote(index)}
-                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                          onClick={() => saveMasterTaskEdit(index)}
+                          className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700"
                         >
-                          Save Note
-                        </button>
-                        <button
-                          onClick={() => {
-                            setNoteIndex(-1);
-                            setNoteText('');
-                          }}
-                          className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
-                        >
-                          Cancel
+                          <Save className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center justify-between">
-                        <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                          {task.text}
-                        </span>
-                        <div className="flex items-center space-x-2">
-                          <div className="flex space-x-1">
+                      <div className="p-4">
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-3 items-center flex-1">
                             <button
                               onClick={() => toggleTaskStatus(selectedDay, index, 'completed')}
-                              className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              className={`w-6 h-6 rounded-full border transition-colors ${
                                 task.completed
-                                  ? 'bg-green-500 text-white'
-                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                  ? 'bg-green-500 border-green-500'
+                                  : 'border-gray-300 hover:border-green-500'
                               }`}
                             >
-                              ✓
+                              {task.completed && (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
+                                  <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              )}
                             </button>
+                            
                             <button
                               onClick={() => toggleTaskStatus(selectedDay, index, 'notCompleted')}
-                              className={`w-8 h-8 flex items-center justify-center rounded-full ${
+                              className={`w-6 h-6 rounded-full border transition-colors ${
                                 task.notCompleted
-                                  ? 'bg-red-500 text-white'
-                                  : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                  ? 'bg-red-500 border-red-500'
+                                  : 'border-gray-300 hover:border-red-500'
                               }`}
                             >
-                              ✗
+                              {task.notCompleted && (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
+                                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                              )}
                             </button>
+                            
+                            <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                              {task.text}
+                            </span>
                           </div>
-                          <div className="flex space-x-1 ml-2 border-l pl-2">
+                          
+                          <div className="flex gap-1">
                             <button
                               onClick={() => editTaskNote(index)}
                               className={`p-1 ${task.notes ? 'text-green-600' : 'text-gray-500'} hover:bg-blue-50 rounded`}
@@ -517,7 +388,7 @@ export function DailyChecklist({
           </>
         ) : (
           <p className="text-center text-gray-500 py-8">
-            No day selected. Pick a day or go to today.
+            No day selected. Click "Today" to get started.
           </p>
         )}
       </section>

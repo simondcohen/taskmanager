@@ -117,17 +117,7 @@ export type Tab =
   | 'grocery'
   | 'podcasts'
   | 'medications'
-  | 'calendar'
   | 'books';
-
-export interface CalendarDay {
-  day: number;
-  date: string;
-  currentMonth: boolean;
-  isToday: boolean;
-  isSelected: boolean;
-  hasChecklist: boolean;
-}
 
 export interface DateUtils {
   formatDate: (date: Date) => string;
@@ -135,15 +125,6 @@ export interface DateUtils {
   addDays: (date: Date, days: number) => Date;
   isSameDay: (date1: Date, date2: Date) => boolean;
   isToday: (date: Date) => boolean;
-}
-
-export interface EventItem {
-  id?: string; // assigned when saved
-  title: string;
-  start_ts: string; // ISO 8601 string
-  end_ts: string; // ISO 8601 string
-  notes?: string;
-  recurrence?: string; // '' or 'weekly:MO,TU'
 }
 
 export interface Category {

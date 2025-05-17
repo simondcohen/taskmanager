@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@import './styles/calendar.css';
-
 /* Prevent horizontal scrolling */
 html, body, #root {
   width: 100%;
@@ -20,10 +18,4 @@ html, body {
 #root {
   display: flex;
   flex-direction: column;
-}
-
-/* Allow event titles to wrap */
-.fc .fc-event-title {
-  white-space: normal;
-  overflow: visible;
 }
