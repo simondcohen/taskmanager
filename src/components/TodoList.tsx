@@ -245,17 +245,22 @@ export function TodoList({ todos, onUpdateTodos, categories, onUpdateCategories 
   const saveEdit = () => {
     if (!editText.trim()) return;
     
-    const updatedTodos = [...todos];
-    updatedTodos[editIndex] = {
-      ...updatedTodos[editIndex],
-      text: editText.trim(),
-      deadline: editDeadline || null,
-      time: editTime || null,
-      category: editCategory || undefined,
-      parentCategory: editCategory ? 
-        categories.find(cat => cat.name === editCategory)?.parentCategory : 
-        undefined
-    };
+    const updatedTodos = todos.map(todo => {
+      // Only update the todo with matching ID to the one being edited
+      if (todo.id === filteredTodos[editIndex].id) {
+        return {
+          ...todo,
+          text: editText.trim(),
+          deadline: editDeadline || null,
+          time: editTime || null,
+          category: editCategory || undefined,
+          parentCategory: editCategory ? 
+            categories.find(cat => cat.name === editCategory)?.parentCategory : 
+            undefined
+        };
+      }
+      return todo;
+    });
     
     onUpdateTodos(updatedTodos);
     setEditIndex(-1);
