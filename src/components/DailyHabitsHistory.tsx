@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { ChecklistProgress } from './checklist/ChecklistProgress';
@@ -19,12 +19,8 @@ export function DailyHabitsHistory({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // Get unique dates from checklists and sort them in reverse order (newest first)
-  const dates = Object.keys(checklists)
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-  // Filter dates by selected month
-  const filteredDates = dates.filter(date => date.startsWith(selectedMonth));
+  // Get unique dates from checklists
+  const dates = Object.keys(checklists);
 
   // Calculate month options for the dropdown
   const monthOptions = Array.from(
@@ -36,20 +32,110 @@ export function DailyHabitsHistory({
     navigate('/daily');
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { 
-      weekday: 'long', 
-      month: 'long', 
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
   const getMonthDisplayName = (monthYearString: string) => {
     const [year, month] = monthYearString.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1, 1);
     return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  };
+
+  // Generate calendar data for the selected month
+  const generateCalendarData = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0);
+    
+    // Get the number of days in the month
+    const daysInMonth = lastDay.getDate();
+    
+    // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
+    const firstDayOfWeek = firstDay.getDay();
+    
+    // Create an array for the days, including empty cells for the days before the first day of the month
+    const calendarDays = [];
+    
+    // Add empty cells for days before the first of the month
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      calendarDays.push(null);
+    }
+    
+    // Add actual days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      calendarDays.push({
+        day,
+        date: dateStr,
+        hasData: dates.includes(dateStr),
+        data: dates.includes(dateStr) ? checklists[dateStr] : null,
+      });
+    }
+    
+    return calendarDays;
+  };
+  
+  const calendarData = generateCalendarData();
+  
+  const calculateCompletionPercentage = (tasks: Task[] | null) => {
+    if (!tasks || tasks.length === 0) return 0;
+    const completed = tasks.filter(t => t.completed).length;
+    return Math.round((completed / tasks.length) * 100);
+  };
+  
+  const getProgressColorClass = (percentage: number) => {
+    if (percentage >= 80) return 'bg-emerald-500';
+    if (percentage >= 50) return 'bg-amber-500';
+    return 'bg-rose-500';
+  };
+
+  const navigateToPreviousMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    let newMonth = month - 1;
+    let newYear = year;
+    
+    if (newMonth < 1) {
+      newMonth = 12;
+      newYear -= 1;
+    }
+    
+    setSelectedMonth(`${newYear}-${String(newMonth).padStart(2, '0')}`);
+  };
+
+  const navigateToNextMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    let newMonth = month + 1;
+    let newYear = year;
+    
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear += 1;
+    }
+    
+    setSelectedMonth(`${newYear}-${String(newMonth).padStart(2, '0')}`);
+  };
+  
+  // Function to get a weekly view of dates
+  const getWeeklyView = () => {
+    // Filter dates for the selected month
+    const filteredDates = dates
+      .filter(date => date.startsWith(selectedMonth))
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+      
+    // Group dates by week
+    const weeks: { [weekNumber: string]: string[] } = {};
+    
+    filteredDates.forEach(date => {
+      const dateObj = new Date(date);
+      const weekStart = new Date(dateObj);
+      weekStart.setDate(dateObj.getDate() - dateObj.getDay()); // Start of week (Sunday)
+      const weekKey = weekStart.toISOString().slice(0, 10);
+      
+      if (!weeks[weekKey]) {
+        weeks[weekKey] = [];
+      }
+      
+      weeks[weekKey].push(date);
+    });
+    
+    return Object.entries(weeks).sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime());
   };
 
   return (
@@ -73,49 +159,134 @@ export function DailyHabitsHistory({
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-700">
               <Calendar className="w-5 h-5 inline-block mr-2" />
-              Filter by Month
+              Monthly View
             </h3>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="border rounded-md p-2 bg-white"
-            >
-              {monthOptions.map(month => (
-                <option key={month} value={month}>
-                  {getMonthDisplayName(month)}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center">
+              <button 
+                onClick={navigateToPreviousMonth}
+                className="p-2 mr-2 text-gray-600 hover:bg-gray-100 rounded-full"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="border rounded-md p-2 bg-white"
+              >
+                {monthOptions.map(month => (
+                  <option key={month} value={month}>
+                    {getMonthDisplayName(month)}
+                  </option>
+                ))}
+              </select>
+              
+              <button 
+                onClick={navigateToNextMonth}
+                className="p-2 ml-2 text-gray-600 hover:bg-gray-100 rounded-full"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
-        {filteredDates.length > 0 ? (
-          <div className="space-y-6">
-            {filteredDates.map(date => (
+        {/* Calendar View */}
+        <div className="mb-8">
+          <div className="grid grid-cols-7 gap-2 mb-2 text-center">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="text-sm font-medium text-gray-600">
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-7 gap-2">
+            {calendarData.map((dayData, index) => (
               <div 
-                key={date} 
-                className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 cursor-pointer transition-colors"
-                onClick={() => handleDateClick(date)}
+                key={index} 
+                className={`aspect-square border rounded-lg ${
+                  dayData ? 'hover:border-indigo-300 cursor-pointer' : ''
+                } ${
+                  dayData && dayData.hasData ? 'bg-gray-50' : 'bg-gray-100 opacity-50'
+                }`}
+                onClick={() => dayData && dayData.hasData && handleDateClick(dayData.date)}
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-lg font-medium">{formatDate(date)}</h3>
-                </div>
-                <ChecklistProgress tasks={checklists[date]} />
-                <div className="mt-4 text-sm text-gray-500">
-                  {checklists[date].length} habits tracked
-                  <span className="mx-2">•</span>
-                  {checklists[date].filter(t => t.completed).length} completed
-                  <span className="mx-2">•</span>
-                  {checklists[date].filter(t => t.notCompleted).length} skipped
+                {dayData && (
+                  <div className="h-full p-1 flex flex-col">
+                    <div className="text-right text-sm font-medium mb-1">
+                      {dayData.day}
+                    </div>
+                    
+                    {dayData.hasData && dayData.data && (
+                      <div className="flex-grow flex flex-col justify-center items-center">
+                        <div className="text-2xl font-bold">
+                          {calculateCompletionPercentage(dayData.data)}%
+                        </div>
+                        <div className="w-full mt-1">
+                          <div 
+                            className={`h-2 rounded ${getProgressColorClass(calculateCompletionPercentage(dayData.data))}`}
+                            style={{width: `${calculateCompletionPercentage(dayData.data)}%`}}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {dayData.data.filter(t => t.completed).length}/{dayData.data.length}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Weekly Summary View */}
+        <div className="mt-8">
+          <h3 className="text-lg font-medium text-gray-700 mb-4">Weekly Summary</h3>
+          
+          <div className="space-y-4">
+            {getWeeklyView().map(([weekStart, weekDates]) => (
+              <div key={weekStart} className="border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium mb-3">
+                  Week of {new Date(weekStart).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
+                </h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {weekDates.map(date => (
+                    <div 
+                      key={date} 
+                      className="border border-gray-200 rounded p-3 hover:border-indigo-300 cursor-pointer"
+                      onClick={() => handleDateClick(date)}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-medium">
+                          {new Date(date).toLocaleDateString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </span>
+                        <span className="text-sm font-bold">
+                          {calculateCompletionPercentage(checklists[date])}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-100 rounded overflow-hidden">
+                        <div 
+                          className={`h-full ${getProgressColorClass(calculateCompletionPercentage(checklists[date]))}`}
+                          style={{width: `${calculateCompletionPercentage(checklists[date])}%`}}
+                        ></div>
+                      </div>
+                      <div className="mt-2 text-sm text-gray-500">
+                        {checklists[date].filter(t => t.completed).length} of {checklists[date].length} completed
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            No records found for {getMonthDisplayName(selectedMonth)}
-          </div>
-        )}
+        </div>
       </section>
     </div>
   );
