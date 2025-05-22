@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, X, Save, MessageSquare, History } from 'lucide-react';
+import { Plus, Edit2, X, Save, MessageSquare, History, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '../types';
 import { dateUtils } from '../utils/dateUtils';
 import { ChecklistProgress } from './checklist/ChecklistProgress';
@@ -59,6 +59,28 @@ export function DailyChecklist({
     const today = dateUtils.formatDate(new Date());
     ensureChecklistForDate(today);
     onSelectDay(today);
+  };
+
+  // Function to navigate to the previous day
+  const goToPreviousDay = () => {
+    const currentDate = dateUtils.parseDate(selectedDay);
+    currentDate.setDate(currentDate.getDate() - 1);
+    const previousDay = dateUtils.formatDate(currentDate);
+    
+    // Ensure checklist exists for the previous day
+    ensureChecklistForDate(previousDay);
+    onSelectDay(previousDay);
+  };
+
+  // Function to navigate to the next day
+  const goToNextDay = () => {
+    const currentDate = dateUtils.parseDate(selectedDay);
+    currentDate.setDate(currentDate.getDate() + 1);
+    const nextDay = dateUtils.formatDate(currentDate);
+    
+    // Ensure checklist exists for the next day
+    ensureChecklistForDate(nextDay);
+    onSelectDay(nextDay);
   };
 
   const addMasterTask = () => {
@@ -222,9 +244,25 @@ export function DailyChecklist({
     <div className="bg-white rounded-xl shadow-md overflow-hidden p-8">
       <section className="max-w-3xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {selectedDay ? new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
-          </h2>
+          <div className="flex items-center">
+            <button
+              onClick={goToPreviousDay}
+              className="p-2 mr-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              aria-label="Previous Day"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {selectedDay ? new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
+            </h2>
+            <button
+              onClick={goToNextDay}
+              className="p-2 ml-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              aria-label="Next Day"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
           
           <div className="flex gap-2">
             <button
