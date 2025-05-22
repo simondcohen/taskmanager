@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, X, Save, MessageSquare } from 'lucide-react';
+import { Plus, Edit2, X, Save, MessageSquare, History } from 'lucide-react';
 import { Task } from '../types';
 import { dateUtils } from '../utils/dateUtils';
 import { ChecklistProgress } from './checklist/ChecklistProgress';
+import { useNavigate } from 'react-router-dom';
 
 interface DailyChecklistProps {
   templateTasks: Task[];
@@ -26,6 +27,7 @@ export function DailyChecklist({
   const [editText, setEditText] = useState('');
   const [noteIndex, setNoteIndex] = useState(-1);
   const [noteText, setNoteText] = useState('');
+  const navigate = useNavigate();
 
   // This is now the master list of recurring tasks
   const masterTasks = templateTasks;
@@ -224,12 +226,21 @@ export function DailyChecklist({
             {selectedDay ? new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
           </h2>
           
-          <button
-            onClick={generateChecklistForToday}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Today
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/daily/history')}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-1"
+            >
+              <History className="w-4 h-4" />
+              <span>History</span>
+            </button>
+            <button
+              onClick={generateChecklistForToday}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Today
+            </button>
+          </div>
         </div>
 
         {selectedDay && checklists[selectedDay] ? (

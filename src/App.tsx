@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { CheckSquare, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
+import { DailyHabitsHistory } from './components/DailyHabitsHistory';
 import { TodoList } from './components/TodoList';
 import { ReadingList } from './components/ReadingList';
 import { EntertainmentList } from './components/EntertainmentList';
@@ -544,6 +545,14 @@ function App() {
                     selectedDay={selectedDay}
                     onUpdateChecklists={setChecklists}
                     onUpdateTemplate={setTemplateTasks}
+                    onSelectDay={setSelectedDay}
+                  />
+                </div>
+              } />
+              <Route path="/daily/history" element={
+                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
+                  <DailyHabitsHistory
+                    checklists={checklists}
                     onSelectDay={setSelectedDay}
                   />
                 </div>
