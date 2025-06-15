@@ -1,46 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { CheckSquare, ListTodo, Book, Film, ShoppingBag, Apple, LayoutGrid, Video, Headphones, Pill, BookOpen, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
+import { CheckSquare, Pill, LayoutGrid, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { DailyHabitsHistory } from './components/DailyHabitsHistory';
-import { TodoList } from './components/TodoList';
-import { ReadingList } from './components/ReadingList';
-import { EntertainmentList } from './components/EntertainmentList';
-import { VideoList } from './components/VideoList';
-import { ShoppingList } from './components/ShoppingList';
-import { GroceryList } from './components/GroceryList';
-import { PodcastList } from './components/PodcastList';
 import { MedicationList } from './components/MedicationList';
-import { BooksList } from './components/BooksList';
-import { Task, DailyChecklists, Tab, TodoItem, ReadingItem, EntertainmentItem, VideoItem, ShoppingItem, GroceryItem, PodcastItem, MedicationItem, BookItem } from './types';
-import { Category } from './components/CategoryManager';
+import { Task, DailyChecklists, Tab, MedicationItem } from './types';
 import { toStorage, fromStorage, formatDateOnly } from './utils/time';
 
 // Group tabs by category
 const tabGroups = [
   {
-    name: 'Tasks',
-    tabs: [
-      { id: 'todos', label: 'To-Do Items', icon: ListTodo },
-    ],
-  },
-  {
     name: 'Personal',
     tabs: [
       { id: 'daily', label: 'Daily Habits', icon: CheckSquare },
       { id: 'medications', label: 'Medications', icon: Pill },
-    ],
-  },
-  {
-    name: 'Lists',
-    tabs: [
-      { id: 'grocery', label: 'Grocery List', icon: Apple },
-      { id: 'shopping', label: 'Shopping List', icon: ShoppingBag },
-      { id: 'reading', label: 'Articles', icon: Book },
-      { id: 'books', label: 'Books', icon: BookOpen },
-      { id: 'entertainment', label: 'Movies & TV', icon: Film },
-      { id: 'videos', label: 'Videos', icon: Video },
-      { id: 'podcasts', label: 'Podcasts', icon: Headphones },
     ],
   },
 ];
@@ -100,47 +73,11 @@ function App() {
 
   const [templateTasks, setTemplateTasks] = useState<Task[]>([]);
   const [checklists, setChecklists] = useState<DailyChecklists>({});
-  const [todos, setTodos] = useState<TodoItem[]>(() => {
-    const savedItems = localStorage.getItem('react-task-manager-app');
-    if (savedItems) {
-      try {
-        const parsedData = JSON.parse(savedItems);
-        return parsedData.todos || [];
-      } catch (e) {
-        console.error('Error parsing todos from localStorage:', e);
-        return [];
-      }
-    }
-    return [];
-  });
-  const [todoCategories, setTodoCategories] = useState<Category[]>(() => {
-    const savedItems = localStorage.getItem('react-task-manager-app');
-    if (savedItems) {
-      try {
-        const parsedData = JSON.parse(savedItems);
-        return parsedData.todoCategories || [];
-      } catch (e) {
-        console.error('Error parsing todoCategories from localStorage:', e);
-        return [];
-      }
-    }
-    return [];
-  });
-  const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
-  const [bookItems, setBookItems] = useState<BookItem[]>([]);
-  const [entertainmentItems, setEntertainmentItems] = useState<EntertainmentItem[]>([]);
-  const [videoItems, setVideoItems] = useState<VideoItem[]>([]);
-  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
-  const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
-  const [podcastItems, setPodcastItems] = useState<PodcastItem[]>([]);
   const [selectedDay, setSelectedDay] = useState(formatDate(new Date()));
   const [medicationItems, setMedicationItems] = useState<MedicationItem[]>(() => {
     const savedItems = localStorage.getItem('medicationItems');
     return savedItems ? JSON.parse(savedItems) : [];
   });
-  const [readingCategories, setReadingCategories] = useState<Category[]>([]);
-  const [bookCategories, setBookCategories] = useState<Category[]>([]);
-  const [videoCategories, setVideoCategories] = useState<Category[]>([]);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
@@ -161,46 +98,13 @@ function App() {
         setTemplateTasks(parsedData.templateTasks || []);
         setChecklists(parsedData.checklists || {});
         
-        // No need to set todos again as they're loaded in useState initialization
-        // No need to set todoCategories again as they're loaded in useState initialization
-        
-        const upgradeOtherCategories = (categories: any[]) => {
-          return categories.map((cat: any) => {
-            if (!cat.parentCategory) {
-              return {
-                ...cat,
-                parentCategory: 'default' // Default for other categories
-              };
-            }
-            return cat;
-          });
-        };
-        
-        // Handle other categories
-        if (parsedData.readingCategories) {
-          setReadingCategories(upgradeOtherCategories(parsedData.readingCategories));
+        if (parsedData.medicationItems) {
+          setMedicationItems(parsedData.medicationItems);
         }
-        
-        if (parsedData.bookCategories) {
-          setBookCategories(upgradeOtherCategories(parsedData.bookCategories));
-        }
-        
-        if (parsedData.videoCategories) {
-          setVideoCategories(upgradeOtherCategories(parsedData.videoCategories));
-        }
-        
-        // Handle other data
-        setReadingItems(parsedData.readingItems || []);
-        setBookItems(parsedData.bookItems || []);
-        setEntertainmentItems(parsedData.entertainmentItems || []);
-        setVideoItems(parsedData.videoItems || []);
-        setShoppingItems(parsedData.shoppingItems || []);
-        setGroceryItems(parsedData.groceryItems || []);
-        setPodcastItems(parsedData.podcastItems || []);
       } else {
         // Use default date format for initial load
         const today = formatDate(new Date());
-        
+
         // Set today as the selected day
         setSelectedDay(today);
       }
@@ -216,21 +120,9 @@ function App() {
     const dataToSave = {
       templateTasks,
       checklists,
-      todos,
-      todoCategories,
-      readingCategories,
-      bookCategories,
-      videoCategories,
-      readingItems,
-      bookItems,
-      entertainmentItems,
-      videoItems,
-      shoppingItems,
-      groceryItems,
-      podcastItems,
     };
     localStorage.setItem('react-task-manager-app', JSON.stringify(dataToSave));
-  }, [templateTasks, checklists, todos, todoCategories, readingCategories, bookCategories, videoCategories, readingItems, bookItems, entertainmentItems, videoItems, shoppingItems, groceryItems, podcastItems]);
+  }, [templateTasks, checklists]);
 
   // Save medication items to localStorage when they change
   useEffect(() => {
@@ -246,18 +138,6 @@ function App() {
     const dataToExport = {
       templateTasks,
       checklists,
-      todos,
-      todoCategories,
-      readingCategories,
-      bookCategories,
-      videoCategories,
-      readingItems,
-      bookItems,
-      groceryItems,
-      shoppingItems,
-      entertainmentItems,
-      videoItems,
-      podcastItems,
       medicationItems,
     };
     const jsonString = JSON.stringify(dataToExport, null, 2);
@@ -295,30 +175,15 @@ function App() {
       isValid = true;
     }
 
-    if (data.hasOwnProperty('todos')) {
-      if (!Array.isArray(data.todos)) {
-        alert('Invalid: todos not array.');
+    if (data.hasOwnProperty('medicationItems')) {
+      if (!Array.isArray(data.medicationItems)) {
+        alert('Invalid: medicationItems not array.');
         return false;
       }
       isValid = true;
     }
 
-    // Check other data types
-    const arrayTypes = [
-      'todoCategories', 'readingCategories', 'bookCategories', 'videoCategories',
-      'readingItems', 'bookItems', 'groceryItems', 'shoppingItems', 
-      'entertainmentItems', 'videoItems', 'podcastItems', 'medicationItems', 
-    ];
-
-    for (const type of arrayTypes) {
-      if (data.hasOwnProperty(type)) {
-        if (!Array.isArray(data[type])) {
-          alert(`Invalid: ${type} not array.`);
-          return false;
-        }
-        isValid = true;
-      }
-    }
+    // No other sections to validate
 
     if (!isValid) {
       alert('Invalid: No recognizable sections found.');
@@ -378,40 +243,29 @@ function App() {
     }
   };
 
-  const exportCurrentTasks = () => {
-    // Get current date
-    const now = new Date();
-    now.setHours(0, 0, 0, 0); // Start of today
-    
-    // Get incomplete tasks
-    const incompleteTasks = todos.filter(todo => !todo.completed);
-
-    // Get active categories
-    const activeCategoriesMap = new Map();
-    incompleteTasks.forEach(task => {
-      if (task.category) activeCategoriesMap.set(task.category, true);
-    });
-    const activeCategories = todoCategories.filter(cat => 
-      activeCategoriesMap.has(cat.name)
-    );
-
+  const exportCurrentData = () => {
     const data = {
       exportedAt: toStorage(new Date()),
-      tasks: incompleteTasks,
-      categories: activeCategories
+      templateTasks,
+      checklists,
+      medicationItems,
     };
 
     copyToClipboard(
       JSON.stringify(data, null, 2),
-      "Tasks copied to clipboard!"
+      "Current data copied to clipboard!"
     );
   };
   
   const handleImportData = (data: any) => {
-    // Only import todos and merge with existing ones instead of replacing
-    if (data.todos) {
-      // Merge new todos with existing ones
-      setTodos(prevTodos => [...prevTodos, ...data.todos]);
+    if (data.templateTasks) {
+      setTemplateTasks(data.templateTasks);
+    }
+    if (data.checklists) {
+      setChecklists(data.checklists);
+    }
+    if (data.medicationItems) {
+      setMedicationItems(data.medicationItems);
     }
   };
 
@@ -472,12 +326,12 @@ function App() {
                   </div>
                   <div className="px-2 pb-2">
                     <button
-                      onClick={exportCurrentTasks}
+                      onClick={exportCurrentData}
                       className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
                     >
                       <ClipboardCopy className="w-5 h-5 flex-shrink-0" />
                       {!isCompactView && (
-                        <span className="ml-3 truncate">Export Tasks</span>
+                        <span className="ml-3 truncate">Export Current Data</span>
                       )}
                     </button>
 
@@ -557,78 +411,6 @@ function App() {
                   />
                 </div>
               } />
-              <Route path="/todos" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <TodoList 
-                    todos={todos} 
-                    onUpdateTodos={setTodos} 
-                    categories={todoCategories}
-                    onUpdateCategories={setTodoCategories}
-                  />
-                </div>
-              } />
-              <Route path="/grocery" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <GroceryList
-                    items={groceryItems}
-                    onUpdateItems={setGroceryItems}
-                  />
-                </div>
-              } />
-              <Route path="/shopping" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <ShoppingList
-                    items={shoppingItems}
-                    onUpdateItems={setShoppingItems}
-                  />
-                </div>
-              } />
-              <Route path="/reading" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <ReadingList 
-                    items={readingItems} 
-                    onUpdateItems={setReadingItems} 
-                    categories={readingCategories}
-                    onUpdateCategories={setReadingCategories}
-                  />
-                </div>
-              } />
-              <Route path="/books" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <BooksList 
-                    items={bookItems} 
-                    onUpdateItems={setBookItems} 
-                    categories={bookCategories}
-                    onUpdateCategories={setBookCategories}
-                  />
-                </div>
-              } />
-              <Route path="/entertainment" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <EntertainmentList
-                    items={entertainmentItems}
-                    onUpdateItems={setEntertainmentItems}
-                  />
-                </div>
-              } />
-              <Route path="/videos" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <VideoList 
-                    items={videoItems} 
-                    onUpdateItems={setVideoItems} 
-                    categories={videoCategories}
-                    onUpdateCategories={setVideoCategories}
-                  />
-                </div>
-              } />
-              <Route path="/podcasts" element={
-                <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
-                  <PodcastList
-                    items={podcastItems}
-                    onUpdateItems={setPodcastItems}
-                  />
-                </div>
-              } />
               <Route path="/medications" element={
                 <div className={`w-full ${isCompactView ? 'max-h-screen' : ''}`}>
                   <MedicationList
@@ -679,163 +461,17 @@ function App() {
                     </div>
                     
                     <div className="border rounded p-4 h-[500px] overflow-y-auto">
-                      <div className="flex justify-between items-center mb-2">
-                        <h4 className="font-medium">JSON Format Documentation</h4>
-                        <button
-                          onClick={() => {
-                            // Group categories by parent category
-                            const workCategories = todoCategories
-                              .filter(cat => cat.parentCategory === 'work')
-                              .map(cat => `"${cat.name}"`)
-                              .join(', ');
-                              
-                            const personalCategories = todoCategories
-                              .filter(cat => cat.parentCategory === 'personal')
-                              .map(cat => `"${cat.name}"`)
-                              .join(', ');
-                              
-                            const documentationText = `JSON FORMAT DOCUMENTATION
-
-IMPORTANT: For todos, please use ONLY the existing categories listed below.
-
-To-Do Categories (${todoCategories.length}):
-  - Work Categories: ${workCategories || "None defined"}
-  - Personal Categories: ${personalCategories || "None defined"}
-
-Tasks (todos):
-"todos": [
-  {
-    "id": 1234567890,
-    "text": "Task description",
-    "deadline": "YYYY-MM-DD",     // Optional
-    "time": "HH:MM",              // Optional
-    "completed": false,           // Optional, default: false
-    "completedAt": null,          // Optional, set when completed
-    "dateAdded": "ISO-timestamp", // Required
-    "category": "Category name",  // Optional - MUST match one of the listed categories above
-    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
-  }
-]
-
-Categories:
-"todoCategories": [
-  // Work categories
-  {
-    "name": "Work Category 1",
-    "color": "#4F46E5",
-    "parentCategory": "work"
-  },
-  {
-    "name": "Work Category 2",
-    "color": "#0891B2",
-    "parentCategory": "work"
-  },
-  
-  // Personal categories
-  {
-    "name": "Personal Category 1",
-    "color": "#059669",
-    "parentCategory": "personal"
-  },
-  {
-    "name": "Personal Category 2",
-    "color": "#D97706",
-    "parentCategory": "personal"
-  }
-]`;
-                            copyToClipboard(documentationText, "Documentation copied to clipboard!");
-                          }}
-                          className="px-2 py-1 bg-gray-200 text-xs text-gray-800 rounded hover:bg-gray-300 flex items-center"
-                        >
-                          Copy Instructions
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">
-                        The JSON data should be an object containing one or more of these arrays. 
-                        Please use ONLY the existing to-do categories listed below:
+                      <p className="text-sm mb-3">
+                        The JSON should include <code>templateTasks</code>, <code>checklists</code> and/or <code>medicationItems</code>.
                       </p>
-                      
-                      <div className="space-y-2 text-sm mb-4">
-                        <div>
-                          <h5 className="font-semibold text-indigo-600">Available Categories</h5>
-                          <div className="bg-gray-50 p-2 rounded text-xs">
-                            {todoCategories.length > 0 ? (
-                              <>
-                                <div className="mb-1">
-                                  <strong>Work Categories:</strong> {todoCategories
-                                    .filter(cat => cat.parentCategory === 'work')
-                                    .map(cat => cat.name)
-                                    .join(', ') || "None defined"
-                                  }
-                                </div>
-                                <div>
-                                  <strong>Personal Categories:</strong> {todoCategories
-                                    .filter(cat => cat.parentCategory === 'personal')
-                                    .map(cat => cat.name)
-                                    .join(', ') || "None defined"
-                                  }
-                                </div>
-                              </>
-                            ) : (
-                              "No categories defined yet"
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-6 text-sm">
-                        <div>
-                          <h5 className="font-semibold text-indigo-600">Tasks (todos)</h5>
-                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"todos": [
-  {
-    "id": 1234567890,
-    "text": "Task description",
-    "deadline": "YYYY-MM-DD",     // Optional
-    "time": "HH:MM",              // Optional
-    "completed": false,           // Optional, default: false
-    "completedAt": null,          // Optional, set when completed
-    "dateAdded": "ISO-timestamp", // Required
-    "category": "Category name",  // Optional - MUST match one of the listed categories above
-    "parentCategory": "work" | "personal" // Optional - Available options: work, personal
-  }
-]`}
-                          </pre>
-                        </div>
-                        
-                        <div>
-                          <h5 className="font-semibold text-indigo-600">Categories</h5>
-                          <pre className="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">
-{`"todoCategories": [
-  // Work categories
-  {
-    "name": "Work Category 1",
-    "color": "#4F46E5",
-    "parentCategory": "work"
-  },
-  {
-    "name": "Work Category 2",
-    "color": "#0891B2",
-    "parentCategory": "work"
-  },
-  
-  // Personal categories
-  {
-    "name": "Personal Category 1",
-    "color": "#059669",
-    "parentCategory": "personal"
-  },
-  {
-    "name": "Personal Category 2",
-    "color": "#D97706",
-    "parentCategory": "personal"
-  }
-]`}
-                          </pre>
-                        </div>
-                      </div>
+                      <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">{`{
+  "templateTasks": [],
+  "checklists": {},
+  "medicationItems": []
+}`}</pre>
                     </div>
-                  </div>
+                    </div>
+
                   
                   <div className="flex justify-end gap-2">
                     <button
