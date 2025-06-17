@@ -101,6 +101,9 @@ function App() {
         if (parsedData.medicationItems) {
           setMedicationItems(parsedData.medicationItems);
         }
+        
+        // Always set selectedDay to today when app loads
+        setSelectedDay(formatDate(new Date()));
       } else {
         // Use default date format for initial load
         const today = formatDate(new Date());
