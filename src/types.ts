@@ -1,7 +1,6 @@
 export interface Task {
   text: string;
   completed?: boolean;
-  notCompleted?: boolean;
   completedAt?: string;
   notes?: string;
 }

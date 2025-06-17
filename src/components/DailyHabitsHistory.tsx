@@ -111,6 +111,32 @@ export function DailyHabitsHistory({
     
     setSelectedMonth(`${newYear}-${String(newMonth).padStart(2, '0')}`);
   };
+
+  const getDayStreakLength = (dateStr: string) => {
+    let streak = 0;
+    let date = new Date(dateStr);
+    while (true) {
+      const str = date.toISOString().slice(0, 10);
+      const tasks = checklists[str];
+      if (!tasks || tasks.some(t => !t.completed)) break;
+      streak++;
+      date.setDate(date.getDate() - 1);
+    }
+    return streak;
+  };
+
+  const getMonthlySummary = () => {
+    const monthDates = dates.filter(d => d.startsWith(selectedMonth));
+    if (monthDates.length === 0) return { avg: 0, perfect: 0 };
+    let total = 0;
+    let perfect = 0;
+    monthDates.forEach(date => {
+      const perc = calculateCompletionPercentage(checklists[date]);
+      total += perc;
+      if (perc === 100) perfect++;
+    });
+    return { avg: Math.round(total / monthDates.length), perfect };
+  };
   
   // Function to get a weekly view of dates
   const getWeeklyView = () => {
@@ -161,6 +187,9 @@ export function DailyHabitsHistory({
               <Calendar className="w-5 h-5 inline-block mr-2" />
               Monthly View
             </h3>
+            <span className="text-sm text-gray-600">
+              {getMonthlySummary().avg}% average completion, {getMonthlySummary().perfect} perfect days
+            </span>
             <div className="flex items-center">
               <button 
                 onClick={navigateToPreviousMonth}
@@ -201,11 +230,11 @@ export function DailyHabitsHistory({
             ))}
           </div>
           
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 text-xs">
             {calendarData.map((dayData, index) => (
-              <div 
-                key={index} 
-                className={`aspect-square border rounded-lg ${
+              <div
+                key={index}
+                className={`aspect-square border rounded-lg p-0.5 ${
                   dayData ? 'hover:border-indigo-300 cursor-pointer' : ''
                 } ${
                   dayData && dayData.hasData ? 'bg-gray-50' : 'bg-gray-100 opacity-50'
@@ -213,7 +242,7 @@ export function DailyHabitsHistory({
                 onClick={() => dayData && dayData.hasData && handleDateClick(dayData.date)}
               >
                 {dayData && (
-                  <div className="h-full p-1 flex flex-col">
+                  <div className="h-full p-0.5 flex flex-col relative">
                     <div className="text-right text-sm font-medium mb-1">
                       {dayData.day}
                     </div>
@@ -233,6 +262,9 @@ export function DailyHabitsHistory({
                           {dayData.data.filter(t => t.completed).length}/{dayData.data.length}
                         </div>
                       </div>
+                    )}
+                    {dayData.hasData && getDayStreakLength(dayData.date) > 1 && (
+                      <div className="absolute top-0 right-0 m-1 text-orange-500">🔥</div>
                     )}
                   </div>
                 )}
