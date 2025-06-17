@@ -44,8 +44,7 @@ export function DailyChecklist({
       // Create a new checklist for this date using the master tasks
       const newChecklist = masterTasks.map((task) => ({
         text: task.text,
-        completed: false,
-        notCompleted: false
+        completed: false
       }));
       
       onUpdateChecklists({
@@ -53,6 +52,23 @@ export function DailyChecklist({
         [dateString]: newChecklist,
       });
     }
+  };
+
+  const calculateStreak = (taskText: string) => {
+    let streak = 0;
+    let date = dateUtils.parseDate(selectedDay);
+
+    while (true) {
+      const dateStr = dateUtils.formatDate(date);
+      const tasksForDate = checklists[dateStr];
+      if (!tasksForDate) break;
+      const task = tasksForDate.find(t => t.text === taskText);
+      if (!task || !task.completed) break;
+      streak++;
+      date.setDate(date.getDate() - 1);
+    }
+
+    return streak;
   };
 
   const generateChecklistForToday = () => {
@@ -106,7 +122,7 @@ export function DailyChecklist({
       if (dateObj >= selectedDayObj) {
         updatedChecklists[date] = [
           ...updatedChecklists[date],
-          { text: newTaskText.trim(), completed: false, notCompleted: false }
+          { text: newTaskText.trim(), completed: false }
         ];
       }
     });
@@ -116,6 +132,7 @@ export function DailyChecklist({
   };
 
   const removeMasterTask = (index: number) => {
+    if (!confirm('Remove this habit starting from today? Past records will be preserved.')) return;
     const taskText = checklists[selectedDay][index].text;
     
     // Remove from master list
@@ -175,40 +192,24 @@ export function DailyChecklist({
     setEditText('');
   };
 
-  const toggleTaskStatus = (dateString: string, index: number, status: 'completed' | 'notCompleted') => {
+  const toggleTaskStatus = (dateString: string, index: number) => {
     const taskText = checklists[dateString][index].text;
     const updatedTasks = checklists[dateString].map(task => {
       if (task.text === taskText) {
-        if (status === 'completed') {
-          return { 
-            ...task, 
-            completed: !task.completed,
-            notCompleted: false 
-          };
-        } else {
-          return { 
-            ...task, 
-            notCompleted: !task.notCompleted,
-            completed: false 
-          };
-        }
+        return {
+          ...task,
+          completed: !task.completed
+        };
       }
       return task;
     });
     
     // Sort the tasks to move completed ones to the bottom
     const sortedTasks = [...updatedTasks].sort((a, b) => {
-      // First check for completed status
+      // Move completed tasks to the bottom while preserving order otherwise
       if (a.completed !== b.completed) {
-        return a.completed ? 1 : -1; // Move completed to the bottom
+        return a.completed ? 1 : -1;
       }
-      
-      // Then check for not-completed status (put at the bottom but above completed)
-      if (a.notCompleted !== b.notCompleted) {
-        return a.notCompleted ? 1 : -1;
-      }
-      
-      // Keep original order for the rest
       return 0;
     });
     
@@ -221,6 +222,37 @@ export function DailyChecklist({
   const editTaskNote = (index: number) => {
     setNoteIndex(index);
     setNoteText(checklists[selectedDay][index].notes || '');
+  };
+
+  const markAllComplete = () => {
+    const updatedTasks = checklists[selectedDay].map(task => ({ ...task, completed: true }));
+    onUpdateChecklists({
+      ...checklists,
+      [selectedDay]: updatedTasks
+    });
+  };
+
+  const applySuggestedHabits = () => {
+    const suggestions = ['\uD83C\uDF05 Morning routine', '\uD83D\uDCAA Exercise', '\uD83D\uDCDA Read for 20 minutes'];
+    const newMaster = [...masterTasks];
+    const updatedChecklists = { ...checklists };
+    suggestions.forEach(text => {
+      if (!newMaster.some(t => t.text === text)) {
+        newMaster.push({ text });
+        Object.keys(updatedChecklists).forEach(date => {
+          const dateObj = dateUtils.parseDate(date);
+          const selectedDayObj = dateUtils.parseDate(selectedDay);
+          if (dateObj >= selectedDayObj) {
+            updatedChecklists[date] = [
+              ...updatedChecklists[date],
+              { text, completed: false }
+            ];
+          }
+        });
+      }
+    });
+    onUpdateTemplate(newMaster);
+    onUpdateChecklists(updatedChecklists);
   };
 
   const saveTaskNote = (index: number) => {
@@ -283,20 +315,28 @@ export function DailyChecklist({
 
         {selectedDay && checklists[selectedDay] ? (
           <>
-            <div className="mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <ChecklistProgress tasks={checklists[selectedDay]} />
+              {dateUtils.isToday(dateUtils.parseDate(selectedDay)) && (
+                <button
+                  onClick={markAllComplete}
+                  className="ml-4 px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                >
+                  Mark all complete
+                </button>
+              )}
             </div>
             
             <ul className="space-y-3 mb-6">
-              {checklists[selectedDay].map((task, index) => (
-                <li 
+              {checklists[selectedDay].map((task, index) => {
+                const streak = calculateStreak(task.text);
+                return (
+                <li
                   key={index}
                   className={`border rounded-lg overflow-hidden transition-all ${
-                    task.completed 
-                      ? 'border-green-200 bg-green-50' 
-                      : task.notCompleted 
-                        ? 'border-red-200 bg-red-50'
-                        : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50'
+                    task.completed
+                      ? 'border-green-200 bg-green-50'
+                      : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50'
                   }`}
                 >
                   {noteIndex === index ? (
@@ -320,6 +360,7 @@ export function DailyChecklist({
                     </div>
                   ) : editIndex === index ? (
                     <div className="p-4">
+                      <p className="text-sm text-gray-500 mb-2">Changes apply from today forward. Past records remain unchanged.</p>
                       <input
                         type="text"
                         value={editText}
@@ -342,38 +383,32 @@ export function DailyChecklist({
                         <div className="flex justify-between items-center">
                           <div className="flex gap-3 items-center flex-1">
                             <button
-                              onClick={() => toggleTaskStatus(selectedDay, index, 'completed')}
-                              className={`w-6 h-6 rounded-full border transition-colors ${
+                              onClick={() => toggleTaskStatus(selectedDay, index)}
+                              className={`w-8 h-8 rounded-full border transition-colors ${
                                 task.completed
                                   ? 'bg-green-500 border-green-500'
                                   : 'border-gray-300 hover:border-green-500'
                               }`}
                             >
                               {task.completed && (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
                                   <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                               )}
                             </button>
                             
-                            <button
-                              onClick={() => toggleTaskStatus(selectedDay, index, 'notCompleted')}
-                              className={`w-6 h-6 rounded-full border transition-colors ${
-                                task.notCompleted
-                                  ? 'bg-red-500 border-red-500'
-                                  : 'border-gray-300 hover:border-red-500'
-                              }`}
-                            >
-                              {task.notCompleted && (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
-                                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                              )}
-                            </button>
                             
-                            <span className={`flex-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                            <span className={`flex-1 flex items-center ${task.completed ? 'line-through text-gray-500' : ''}`}>
                               {task.text}
+                              {task.notes && (
+                                <span className="ml-2 text-gray-400 text-xs truncate max-w-[120px]">
+                                  {task.notes.slice(0, 30)}
+                                  {task.notes.length > 30 ? '…' : ''}
+                                </span>
+                              )}
+                              {streak > 1 && (
+                                <span className="ml-2 text-orange-500 text-xs">🔥 {streak} days</span>
+                              )}
                             </span>
                           </div>
                           
@@ -383,19 +418,19 @@ export function DailyChecklist({
                               className={`p-1 ${task.notes ? 'text-green-600' : 'text-gray-500'} hover:bg-blue-50 rounded`}
                               title="Add note for today's habit"
                             >
-                              <MessageSquare className="w-4 h-4" />
+                              <MessageSquare className="w-4 h-4" fill={task.notes ? 'currentColor' : 'none'} />
                             </button>
                             <button
                               onClick={() => editMasterTask(index)}
                               className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                              title="Edit habit (changes apply to all days)"
+                              title="Edit habit (from today onward)"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => removeMasterTask(index)}
                               className="p-1 text-red-600 hover:bg-red-50 rounded"
-                              title="Remove habit (removes from all days)"
+                              title="Remove habit (from today onward)"
                             >
                               <X className="w-4 h-4" />
                             </button>
@@ -416,7 +451,8 @@ export function DailyChecklist({
                     </>
                   )}
                 </li>
-              ))}
+                );
+              })
             </ul>
             <div className="mt-4 flex gap-2">
               <input
@@ -434,11 +470,23 @@ export function DailyChecklist({
                 <Plus className="w-5 h-5" />
               </button>
             </div>
+            <p className="text-xs text-gray-500 mt-1">Press Enter to add habit, Space to toggle completion</p>
           </>
         ) : (
-          <p className="text-center text-gray-500 py-8">
-            No day selected. Click "Today" to get started.
-          </p>
+          <div className="text-center text-gray-500 py-8 space-y-4">
+            <p className="text-lg">Welcome! Start building your habit routine.</p>
+            <ul className="space-y-1">
+              <li>\uD83C\uDF05 Morning routine</li>
+              <li>\uD83D\uDCAA Exercise</li>
+              <li>\uD83D\uDCDA Read for 20 minutes</li>
+            </ul>
+            <button
+              onClick={applySuggestedHabits}
+              className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              Get started with suggested habits
+            </button>
+          </div>
         )}
       </section>
     </div>

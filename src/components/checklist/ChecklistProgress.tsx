@@ -26,7 +26,7 @@ export function ChecklistProgress({ tasks }: ChecklistProgressProps) {
       <div className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-100 shadow-sm">
         <div className="flex items-center justify-center gap-12">
           <div className="relative">
-            <svg className="w-32 h-32">
+            <svg className="w-24 h-24">
               <circle
                 cx="64"
                 cy="64"
