@@ -99,9 +99,13 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   const lastDoses = medications.reduce((acc: {[key: string]: MedicationItem | null}, medication) => {
     const medicationLogs = items.filter(item => item.name === medication && item.date === selectedDate);
     if (medicationLogs.length) {
-      const sorted = [...medicationLogs].sort((a, b) => 
-        fromStorage(b.timestamp).getTime() - fromStorage(a.timestamp).getTime()
-      );
+      const sorted = [...medicationLogs].sort((a, b) => {
+        const timeDiff = fromStorage(b.timestamp).getTime() - fromStorage(a.timestamp).getTime();
+        if (timeDiff === 0) {
+          return b.id - a.id; // Newer ID wins if times are equal
+        }
+        return timeDiff;
+      });
       acc[medication] = sorted[0];
     } else {
       acc[medication] = null;
@@ -227,9 +231,18 @@ export function MedicationList({ items, onUpdateItems }: MedicationListProps) {
   // Save inline edit
   const saveInlineEdit = () => {
     if (inlineEditForm) {
-      // Update the timestamp based on date and time
-      const dateTime = new Date(`${inlineEditForm.date}T${inlineEditForm.time}`);
-      const timestamp = toStorage(dateTime);
+      // Find the original item to compare date/time changes
+      const originalItem = items.find(item => item.id === inlineEditForm.id);
+      
+      // Only recreate timestamp if date or time actually changed
+      const timestampChanged = originalItem && (
+        inlineEditForm.date !== originalItem.date || 
+        inlineEditForm.time !== originalItem.time
+      );
+      
+      const timestamp = timestampChanged 
+        ? toStorage(new Date(`${inlineEditForm.date}T${inlineEditForm.time}`))
+        : originalItem?.timestamp || inlineEditForm.timestamp;
       
       const updatedItem = {
         ...inlineEditForm,
