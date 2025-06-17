@@ -452,7 +452,7 @@ export function DailyChecklist({
                   )}
                 </li>
                 );
-              })
+              })}
             </ul>
             <div className="mt-4 flex gap-2">
               <input
