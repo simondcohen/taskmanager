@@ -84,6 +84,7 @@ function App() {
   const [showTooltip, setShowTooltip] = useState('');
   const [mergeImport, setMergeImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   // Save active tab to localStorage when it changes
   useEffect(() => {
@@ -287,6 +288,33 @@ function App() {
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        // Validate the JSON before putting it in the textarea
+        const parsed = JSON.parse(content);
+        if (validateImportData(parsed)) {
+          setImportText(content);
+          setImportError('');
+        } else {
+          setImportError('JSON schema not recognised');
+        }
+      } catch (err) {
+        setImportError('Invalid JSON file');
+        console.error('File parsing error:', err);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Clear the input so the same file can be selected again if needed
+    event.target.value = '';
   };
   
   const copyToClipboard = async (text: string, successMessage: string) => {
@@ -521,18 +549,18 @@ function App() {
                           Method 2: Upload JSON File
                         </label>
                         <button
-                          onClick={() => fileInputRef.current?.click()}
+                          onClick={() => modalFileInputRef.current?.click()}
                           className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-colors flex items-center justify-center"
                         >
                           <Upload className="w-5 h-5 mr-2" />
                           Choose JSON File to Upload
                         </button>
                         <input
-                          ref={fileInputRef}
+                          ref={modalFileInputRef}
                           type="file"
                           accept=".json,application/json"
                           className="hidden"
-                          onChange={handleFileUpload}
+                          onChange={handleFileSelect}
                         />
                       </div>
                       
@@ -582,7 +610,7 @@ function App() {
                       disabled={!importText.trim()}
                       className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      Import Pasted JSON
+                      Import JSON Data
                     </button>
                   </div>
                 </div>
