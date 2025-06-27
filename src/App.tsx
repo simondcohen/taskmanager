@@ -82,6 +82,7 @@ function App() {
   const [importText, setImportText] = useState('');
   const [importError, setImportError] = useState('');
   const [showTooltip, setShowTooltip] = useState('');
+  const [mergeImport, setMergeImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Save active tab to localStorage when it changes
@@ -196,6 +197,67 @@ function App() {
     return true;
   };
 
+  const mergeImportData = (data: any) => {
+    // Merge templateTasks (habits) - combine unique tasks by text
+    if (data.templateTasks) {
+      const existingTexts = new Set(templateTasks.map(t => t.text));
+      const newTasks = data.templateTasks.filter((task: Task) => !existingTexts.has(task.text));
+      setTemplateTasks([...templateTasks, ...newTasks]);
+    }
+
+    // Merge checklists - combine by date
+    if (data.checklists) {
+      const mergedChecklists = { ...checklists };
+      
+      Object.entries(data.checklists).forEach(([date, importedTasks]) => {
+        if (mergedChecklists[date]) {
+          // Date exists - merge tasks
+          const existingTexts = new Set(mergedChecklists[date].map((t: Task) => t.text));
+          const newTasks = (importedTasks as Task[]).filter(task => !existingTexts.has(task.text));
+          mergedChecklists[date] = [...mergedChecklists[date], ...newTasks];
+        } else {
+          // Date doesn't exist - add all tasks
+          mergedChecklists[date] = importedTasks as Task[];
+        }
+      });
+      
+      setChecklists(mergedChecklists);
+    }
+
+    // Merge medicationItems - avoid duplicates by timestamp
+    if (data.medicationItems) {
+      const existingTimestamps = new Set(medicationItems.map(m => m.timestamp));
+      const newMeds = data.medicationItems.filter((med: MedicationItem) => 
+        !existingTimestamps.has(med.timestamp)
+      );
+      
+      // If no timestamp, check by name+dose+date+time
+      const uniqueNewMeds = newMeds.filter((med: MedicationItem) => {
+        if (med.timestamp) return true;
+        return !medicationItems.some(existing => 
+          existing.name === med.name && 
+          existing.dose === med.dose && 
+          existing.date === med.date && 
+          existing.time === med.time
+        );
+      });
+      
+      setMedicationItems([...medicationItems, ...uniqueNewMeds]);
+    }
+  };
+  
+  const handleImportData = (data: any) => {
+    if (data.templateTasks) {
+      setTemplateTasks(data.templateTasks);
+    }
+    if (data.checklists) {
+      setChecklists(data.checklists);
+    }
+    if (data.medicationItems) {
+      setMedicationItems(data.medicationItems);
+    }
+  };
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -206,12 +268,17 @@ function App() {
               const content = e.target?.result as string;
       const parsed = JSON.parse(content);
       if (validateImportData(parsed)) {
-        // Add this confirmation
-        if (!confirm('This will replace your current data. Are you sure you want to import?')) {
-          return;
+        if (mergeImport) {
+          if (!confirm('This will merge the imported data with your existing data. Continue?')) {
+            return;
+          }
+          mergeImportData(parsed);
+        } else {
+          if (!confirm('This will replace your current data. Are you sure you want to import?')) {
+            return;
+          }
+          handleImportData(parsed);
         }
-        
-        handleImportData(parsed);
         showTemporaryMessage('Data imported successfully!');
       }
       } catch (err) {
@@ -238,12 +305,17 @@ function App() {
           const parsed = JSON.parse(importText);
     
     if (validateImportData(parsed)) {
-      // Add this confirmation
-      if (!confirm('This will replace your current data. Are you sure you want to import?')) {
-        return;
+      if (mergeImport) {
+        if (!confirm('This will merge the imported data with your existing data. Continue?')) {
+          return;
+        }
+        mergeImportData(parsed);
+      } else {
+        if (!confirm('This will replace your current data. Are you sure you want to import?')) {
+          return;
+        }
+        handleImportData(parsed);
       }
-      
-      handleImportData(parsed);
       setIsImportModalOpen(false);
       setImportText('');
       showTemporaryMessage('Data imported successfully!');
@@ -268,18 +340,6 @@ function App() {
       JSON.stringify(data, null, 2),
       "Current data copied to clipboard!"
     );
-  };
-  
-  const handleImportData = (data: any) => {
-    if (data.templateTasks) {
-      setTemplateTasks(data.templateTasks);
-    }
-    if (data.checklists) {
-      setChecklists(data.checklists);
-    }
-    if (data.medicationItems) {
-      setMedicationItems(data.medicationItems);
-    }
   };
 
   return (
@@ -485,6 +545,18 @@ function App() {
                     </div>
                     </div>
 
+                  <div className="mb-4 flex items-center">
+                    <input
+                      type="checkbox"
+                      id="merge-import"
+                      checked={mergeImport}
+                      onChange={(e) => setMergeImport(e.target.checked)}
+                      className="mr-2"
+                    />
+                    <label htmlFor="merge-import" className="text-sm">
+                      Merge with existing data (instead of replacing everything)
+                    </label>
+                  </div>
                   
                   <div className="flex justify-end gap-2">
                     <button
