@@ -414,7 +414,7 @@ function App() {
                     >
                       <Database className="w-5 h-5 flex-shrink-0" />
                       {!isCompactView && (
-                        <span className="ml-3 truncate">Paste JSON</span>
+                        <span className="ml-3 truncate">Import Data</span>
                       )}
                     </button>
 
@@ -426,23 +426,6 @@ function App() {
                       {!isCompactView && (
                         <span className="ml-3 truncate">Download Data</span>
                       )}
-                    </button>
-
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
-                    >
-                      <Upload className="w-5 h-5 flex-shrink-0" />
-                      {!isCompactView && (
-                        <span className="ml-3 truncate">Upload Data</span>
-                      )}
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".json,application/json"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                      />
                     </button>
                   </div>
                 </div>
@@ -500,12 +483,12 @@ function App() {
               </div>
             )}
 
-            {/* Import JSON Modal */}
+            {/* Import Data Modal */}
             {isImportModalOpen && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium">Import JSON Data</h3>
+                    <h3 className="text-lg font-medium">Import Data</h3>
                     <button 
                       onClick={() => {
                         setIsImportModalOpen(false);
@@ -521,15 +504,40 @@ function App() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <textarea
-                        value={importText}
-                        onChange={(e) => setImportText(e.target.value)}
-                        className="w-full border rounded p-2 mb-2 h-[500px]"
-                        placeholder="Paste your JSON here..."
-                      />
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Method 1: Paste JSON Data
+                        </label>
+                        <textarea
+                          value={importText}
+                          onChange={(e) => setImportText(e.target.value)}
+                          className="w-full border rounded p-2 h-[350px]"
+                          placeholder="Paste your JSON here..."
+                        />
+                      </div>
+                      
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Method 2: Upload JSON File
+                        </label>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-colors flex items-center justify-center"
+                        >
+                          <Upload className="w-5 h-5 mr-2" />
+                          Choose JSON File to Upload
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".json,application/json"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                      </div>
                       
                       {importError && (
-                        <div className="text-red-500">{importError}</div>
+                        <div className="text-red-500 text-sm">{importError}</div>
                       )}
                     </div>
                     
@@ -543,7 +551,7 @@ function App() {
   "medicationItems": []
 }`}</pre>
                     </div>
-                    </div>
+                  </div>
 
                   <div className="mb-4 flex items-center">
                     <input
@@ -571,9 +579,10 @@ function App() {
                     </button>
                     <button
                       onClick={handleImportText}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                      disabled={!importText.trim()}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      Import
+                      Import Pasted JSON
                     </button>
                   </div>
                 </div>
