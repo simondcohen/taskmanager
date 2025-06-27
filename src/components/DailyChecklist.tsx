@@ -285,7 +285,7 @@ export function DailyChecklist({
               <ChevronLeft className="w-5 h-5" />
             </button>
             <h2 className="text-2xl font-bold text-gray-900">
-              {selectedDay ? new Date(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
+              {selectedDay ? dateUtils.parseDate(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
             </h2>
             <button
               onClick={goToNextDay}
