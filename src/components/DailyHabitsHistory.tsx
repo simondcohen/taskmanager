@@ -114,9 +114,15 @@ export function DailyHabitsHistory({
 
   const getDayStreakLength = (dateStr: string) => {
     let streak = 0;
-    let date = new Date(dateStr);
+    const [year, month, day] = dateStr.split('-').map(Number);
+    let date = new Date(year, month - 1, day);
+    
     while (true) {
-      const str = date.toISOString().slice(0, 10);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const str = `${year}-${month}-${day}`;
+      
       const tasks = checklists[str];
       if (!tasks || tasks.some(t => !t.completed)) break;
       streak++;

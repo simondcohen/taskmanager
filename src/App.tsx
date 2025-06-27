@@ -203,12 +203,17 @@ function App() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const content = e.target?.result as string;
-        const parsed = JSON.parse(content);
-        if (validateImportData(parsed)) {
-          handleImportData(parsed);
-          showTemporaryMessage('Data imported successfully!');
+              const content = e.target?.result as string;
+      const parsed = JSON.parse(content);
+      if (validateImportData(parsed)) {
+        // Add this confirmation
+        if (!confirm('This will replace your current data. Are you sure you want to import?')) {
+          return;
         }
+        
+        handleImportData(parsed);
+        showTemporaryMessage('Data imported successfully!');
+      }
       } catch (err) {
         alert('Invalid JSON file or error during parsing.');
         console.error('Import Error:', err);
@@ -230,14 +235,19 @@ function App() {
   const handleImportText = () => {
     setImportError('');
     try {
-      const parsed = JSON.parse(importText);
+          const parsed = JSON.parse(importText);
+    
+    if (validateImportData(parsed)) {
+      // Add this confirmation
+      if (!confirm('This will replace your current data. Are you sure you want to import?')) {
+        return;
+      }
       
-      if (validateImportData(parsed)) {
-        handleImportData(parsed);
-        setIsImportModalOpen(false);
-        setImportText('');
-        showTemporaryMessage('Data imported successfully!');
-      } else {
+      handleImportData(parsed);
+      setIsImportModalOpen(false);
+      setImportText('');
+      showTemporaryMessage('Data imported successfully!');
+    } else {
         setImportError('JSON schema not recognised');
       }
     } catch (err) {
