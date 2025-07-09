@@ -95,28 +95,45 @@ function App() {
   useEffect(() => {
     try {
       const storedData = localStorage.getItem('react-task-manager-app');
+      const today = formatDate(new Date());
+      
       if (storedData) {
         const parsedData = JSON.parse(storedData);
-        setTemplateTasks(parsedData.templateTasks || []);
-        setChecklists(parsedData.checklists || {});
+        const loadedTemplateTasks = parsedData.templateTasks || [];
+        const loadedChecklists = parsedData.checklists || {};
+        
+        // Ensure today's checklist exists
+        if (!loadedChecklists[today] && loadedTemplateTasks.length > 0) {
+          loadedChecklists[today] = loadedTemplateTasks.map((task: Task) => ({
+            text: task.text,
+            completed: false
+          }));
+        }
+        
+        setTemplateTasks(loadedTemplateTasks);
+        setChecklists(loadedChecklists);
         
         if (parsedData.medicationItems) {
           setMedicationItems(parsedData.medicationItems);
         }
         
         // Always set selectedDay to today when app loads
-        setSelectedDay(formatDate(new Date()));
+        setSelectedDay(today);
       } else {
         // Use default date format for initial load
-        const today = formatDate(new Date());
-
         // Set today as the selected day
         setSelectedDay(today);
+        
+        // Initialize empty checklist for today
+        setChecklists({ [today]: [] });
       }
     } catch (error) {
       console.error('Error loading data from localStorage:', error);
       // Set today as the selected day
-      setSelectedDay(formatDate(new Date()));
+      const today = formatDate(new Date());
+      setSelectedDay(today);
+      // Initialize empty checklist for today
+      setChecklists({ [today]: [] });
     }
   }, []); // Empty dependency array to run only on mount
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, X, Save, MessageSquare, History, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '../types';
 import { dateUtils } from '../utils/dateUtils';
@@ -31,6 +31,25 @@ export function DailyChecklist({
 
   // This is now the master list of recurring tasks
   const masterTasks = templateTasks;
+
+  // Automatically generate today's checklist when component mounts
+  useEffect(() => {
+    const today = dateUtils.formatDate(new Date());
+    if (!checklists[today]) {
+      ensureChecklistForDate(today);
+    }
+    // If we're not on any day yet, select today
+    if (!selectedDay) {
+      onSelectDay(today);
+    }
+  }, []); // Run only on mount
+
+  // Ensure we have a checklist for the selected day
+  useEffect(() => {
+    if (selectedDay && !checklists[selectedDay]) {
+      ensureChecklistForDate(selectedDay);
+    }
+  }, [selectedDay, checklists]);
 
   const isFutureDate = (date: Date) => {
     const today = new Date();
@@ -233,15 +252,19 @@ export function DailyChecklist({
   };
 
   const applySuggestedHabits = () => {
-    const suggestions = ['\uD83C\uDF05 Morning routine', '\uD83D\uDCAA Exercise', '\uD83D\uDCDA Read for 20 minutes'];
+    const suggestions = ['🌅 Morning routine', '💪 Exercise', '📚 Read for 20 minutes'];
     const newMaster = [...masterTasks];
     const updatedChecklists = { ...checklists };
+    
+    // If no selected day, use today
+    const targetDay = selectedDay || dateUtils.formatDate(new Date());
+    
     suggestions.forEach(text => {
       if (!newMaster.some(t => t.text === text)) {
         newMaster.push({ text });
         Object.keys(updatedChecklists).forEach(date => {
           const dateObj = dateUtils.parseDate(date);
-          const selectedDayObj = dateUtils.parseDate(selectedDay);
+          const selectedDayObj = dateUtils.parseDate(targetDay);
           if (dateObj >= selectedDayObj) {
             updatedChecklists[date] = [
               ...updatedChecklists[date],
@@ -313,10 +336,10 @@ export function DailyChecklist({
           </div>
         </div>
 
-        {selectedDay && checklists[selectedDay] ? (
+        {selectedDay ? (
           <>
             <div className="mb-6 flex items-center justify-between">
-              <ChecklistProgress tasks={checklists[selectedDay]} />
+              <ChecklistProgress tasks={checklists[selectedDay] || []} />
               {dateUtils.isToday(dateUtils.parseDate(selectedDay)) && (
                 <button
                   onClick={markAllComplete}
@@ -328,7 +351,7 @@ export function DailyChecklist({
             </div>
             
             <ul className="space-y-3 mb-6">
-              {checklists[selectedDay].map((task, index) => {
+              {(checklists[selectedDay] || []).map((task, index) => {
                 const streak = calculateStreak(task.text);
                 return (
                 <li
@@ -473,19 +496,8 @@ export function DailyChecklist({
             <p className="text-xs text-gray-500 mt-1">Press Enter to add habit, Space to toggle completion</p>
           </>
         ) : (
-          <div className="text-center text-gray-500 py-8 space-y-4">
-            <p className="text-lg">Welcome! Start building your habit routine.</p>
-            <ul className="space-y-1">
-              <li>\uD83C\uDF05 Morning routine</li>
-              <li>\uD83D\uDCAA Exercise</li>
-              <li>\uD83D\uDCDA Read for 20 minutes</li>
-            </ul>
-            <button
-              onClick={applySuggestedHabits}
-              className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-            >
-              Get started with suggested habits
-            </button>
+          <div className="text-center text-gray-500 py-8">
+            <p>Loading...</p>
           </div>
         )}
       </section>
