@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { CheckSquare, Pill, LayoutGrid, Database, Download, Upload, ClipboardCopy } from 'lucide-react';
+import { CheckSquare, Pill, LayoutGrid, Database, Download, Upload } from 'lucide-react';
 import { DailyChecklist } from './components/DailyChecklist';
 import { DailyHabitsHistory } from './components/DailyHabitsHistory';
 import { MedicationList } from './components/MedicationList';
@@ -25,6 +25,11 @@ function App() {
   });
   const [isCompactView, setIsCompactView] = useState(false);
   const location = useLocation();
+  
+  // Add state for last backup time
+  const [lastBackupTime, setLastBackupTime] = useState<string | null>(() => {
+    return localStorage.getItem('lastBackupTime');
+  });
   
   // Update activeTab based on URL path
   useEffect(() => {
@@ -157,10 +162,15 @@ function App() {
   };
 
   const downloadData = () => {
+    // Get medications list from localStorage
+    const savedMedications = localStorage.getItem('medications');
+    const medications = savedMedications ? JSON.parse(savedMedications) : [];
+    
     const dataToExport = {
       templateTasks,
       checklists,
       medicationItems,
+      medications, // Include medications list
     };
     const jsonString = JSON.stringify(dataToExport, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
@@ -170,7 +180,34 @@ function App() {
     link.download = `task-manager-data-${formatDateOnly(toStorage(new Date()))}.json`;
     link.click();
     URL.revokeObjectURL(url);
+    
+    // Update last backup time
+    const backupTime = new Date().toISOString();
+    setLastBackupTime(backupTime);
+    localStorage.setItem('lastBackupTime', backupTime);
+    
     showTemporaryMessage('Backup downloaded');
+  };
+
+  const formatLastBackupTime = (timestamp: string | null) => {
+    if (!timestamp) return 'Never';
+    
+    const backupDate = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - backupDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffDays > 0) {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    } else if (diffHours > 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    } else if (diffMinutes > 0) {
+      return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
   };
 
   const validateImportData = (data: any) => {
@@ -181,7 +218,7 @@ function App() {
 
     let isValid = false;
 
-    if (data.hasOwnProperty('templateTasks')) {
+    if (Object.prototype.hasOwnProperty.call(data, 'templateTasks')) {
       if (!Array.isArray(data.templateTasks)) {
         alert('Invalid: templateTasks not array.');
         return false;
@@ -189,7 +226,7 @@ function App() {
       isValid = true;
     }
 
-    if (data.hasOwnProperty('checklists')) {
+    if (Object.prototype.hasOwnProperty.call(data, 'checklists')) {
       if (typeof data.checklists !== 'object' || Array.isArray(data.checklists)) {
         alert('Invalid: checklists not object.');
         return false;
@@ -197,9 +234,17 @@ function App() {
       isValid = true;
     }
 
-    if (data.hasOwnProperty('medicationItems')) {
+    if (Object.prototype.hasOwnProperty.call(data, 'medicationItems')) {
       if (!Array.isArray(data.medicationItems)) {
         alert('Invalid: medicationItems not array.');
+        return false;
+      }
+      isValid = true;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(data, 'medications')) {
+      if (!Array.isArray(data.medications)) {
+        alert('Invalid: medications not array.');
         return false;
       }
       isValid = true;
@@ -262,6 +307,16 @@ function App() {
       
       setMedicationItems([...medicationItems, ...uniqueNewMeds]);
     }
+
+    // Merge medications list - combine unique medication names
+    if (data.medications) {
+      const savedMedications = localStorage.getItem('medications');
+      const currentMedications = savedMedications ? JSON.parse(savedMedications) : [];
+      const existingMedNames = new Set(currentMedications);
+      const newMedications = data.medications.filter((med: string) => !existingMedNames.has(med));
+      const mergedMedications = [...currentMedications, ...newMedications];
+      localStorage.setItem('medications', JSON.stringify(mergedMedications));
+    }
   };
   
   const handleImportData = (data: any) => {
@@ -273,6 +328,9 @@ function App() {
     }
     if (data.medicationItems) {
       setMedicationItems(data.medicationItems);
+    }
+    if (data.medications) {
+      localStorage.setItem('medications', JSON.stringify(data.medications));
     }
   };
 
@@ -334,16 +392,6 @@ function App() {
     event.target.value = '';
   };
   
-  const copyToClipboard = async (text: string, successMessage: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showTemporaryMessage(successMessage);
-    } catch (err) {
-      console.error('Failed to copy:', err);
-      alert('Failed to copy to clipboard');
-    }
-  };
-
   const handleImportText = () => {
     setImportError('');
     try {
@@ -373,20 +421,6 @@ function App() {
     }
   };
 
-  const exportCurrentData = () => {
-    const data = {
-      exportedAt: toStorage(new Date()),
-      templateTasks,
-      checklists,
-      medicationItems,
-    };
-
-    copyToClipboard(
-      JSON.stringify(data, null, 2),
-      "Current data copied to clipboard!"
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 w-full overflow-x-hidden">
       <div className="transition-all duration-300 ease-in-out w-full px-4">
@@ -401,6 +435,14 @@ function App() {
               >
                 <LayoutGrid className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Last Backup Indicator */}
+            <div className="mb-4 text-center">
+              <div className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-600">
+                <Download className="w-4 h-4 mr-2" />
+                <span>Last backed up: {formatLastBackupTime(lastBackupTime)}</span>
+              </div>
             </div>
 
             <nav className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -443,16 +485,6 @@ function App() {
                     Data
                   </div>
                   <div className="px-2 pb-2">
-                    <button
-                      onClick={exportCurrentData}
-                      className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
-                    >
-                      <ClipboardCopy className="w-5 h-5 flex-shrink-0" />
-                      {!isCompactView && (
-                        <span className="ml-3 truncate">Export Current Data</span>
-                      )}
-                    </button>
-
                     <button
                       onClick={() => setIsImportModalOpen(true)}
                       className="w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center hover:bg-gray-100"
@@ -588,12 +620,13 @@ function App() {
                     
                     <div className="border rounded p-4 h-[500px] overflow-y-auto">
                       <p className="text-sm mb-3">
-                        The JSON should include <code>templateTasks</code>, <code>checklists</code> and/or <code>medicationItems</code>.
+                        The JSON should include <code>templateTasks</code>, <code>checklists</code>, <code>medicationItems</code> and/or <code>medications</code>.
                       </p>
                       <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">{`{
   "templateTasks": [],
   "checklists": {},
-  "medicationItems": []
+  "medicationItems": [],
+  "medications": []
 }`}</pre>
                     </div>
                   </div>

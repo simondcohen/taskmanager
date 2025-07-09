@@ -254,18 +254,9 @@ export function DailyChecklist({
       return task;
     });
     
-    // Sort the tasks to move completed ones to the bottom while preserving order otherwise
-    const sortedTasks = [...updatedTasks].sort((a, b) => {
-      // Move completed tasks to the bottom while preserving order otherwise
-      if ((a.status === 'completed') !== (b.status === 'completed')) {
-        return a.status === 'completed' ? 1 : -1;
-      }
-      return 0;
-    });
-    
     onUpdateChecklists({
       ...checklists,
-      [dateString]: sortedTasks
+      [dateString]: updatedTasks
     });
   };
 
@@ -300,46 +291,46 @@ export function DailyChecklist({
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl shadow-gray-200/40 overflow-hidden p-10">
-      <section className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-3">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden p-8">
+      <section className="max-w-3xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
             <button
               onClick={goToPreviousDay}
-              className="p-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm"
+              className="p-2 bg-white border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors"
               aria-label="Previous Day"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </button>
-            <h2 className="text-3xl font-bold text-gray-900 px-2">
+            <h2 className="text-xl font-semibold text-gray-900 px-2">
               {selectedDay ? dateUtils.parseDate(selectedDay).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : 'Daily Habits Tracker'}
             </h2>
             <button
               onClick={goToNextDay}
               disabled={!!(selectedDay && dateUtils.isToday(dateUtils.parseDate(selectedDay)))}
-              className={`p-2.5 rounded-xl transition-all duration-200 shadow-sm ${
+              className={`p-2 rounded-md transition-colors ${
                 selectedDay && dateUtils.isToday(dateUtils.parseDate(selectedDay))
                   ? 'bg-gray-100 border border-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                  : 'bg-white border border-gray-300 text-gray-600 hover:bg-gray-50'
               }`}
               aria-label="Next Day"
               title={selectedDay && dateUtils.isToday(dateUtils.parseDate(selectedDay)) ? "Cannot navigate to future dates" : "Next Day"}
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex gap-2">
             <button
               onClick={() => navigate('/daily/history')}
-              className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 flex items-center gap-2 shadow-sm font-medium"
+              className="px-3 py-1.5 bg-white border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm font-medium"
             >
-              <History className="w-4 h-4" />
+              <History className="w-3.5 h-3.5" />
               <span>History</span>
             </button>
             <button
               onClick={generateChecklistForToday}
-              className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg shadow-indigo-600/25 font-medium"
+              className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium"
             >
               Today
             </button>
@@ -349,12 +340,12 @@ export function DailyChecklist({
         {selectedDay ? (
           <>
             {(checklists[selectedDay] || []).length > 0 && (
-              <div className="mb-8 flex items-center justify-between">
+              <div className="mb-6 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-lg border border-gray-200 p-5 flex items-center justify-between">
                 <ChecklistProgress tasks={checklists[selectedDay] || []} />
                 {dateUtils.isToday(dateUtils.parseDate(selectedDay)) && (
                   <button
                     onClick={markAllComplete}
-                    className="ml-6 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-lg shadow-emerald-500/25 font-medium text-sm"
+                    className="ml-6 px-4 py-2 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors text-sm font-medium whitespace-nowrap"
                   >
                     Mark all complete
                   </button>
@@ -362,18 +353,18 @@ export function DailyChecklist({
               </div>
             )}
             
-            <ul className="space-y-4 mb-8">
+            <ul className="space-y-3 mb-6">
               {(checklists[selectedDay] || []).length === 0 ? (
-                <li className="text-center py-16">
-                  <div className="max-w-md mx-auto">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10 text-indigo-600">
+                <li className="text-center py-12">
+                  <div className="max-w-sm mx-auto">
+                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-gray-500">
                         <path d="M9 11l3 3L22 4"></path>
                         <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path>
                       </svg>
                     </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No habits yet</h3>
-                    <p className="text-gray-600">Start building healthy habits by adding your first one below.</p>
+                    <h3 className="text-base font-medium text-gray-900 mb-1">No habits yet</h3>
+                    <p className="text-sm text-gray-500">Start building healthy habits by adding your first one below.</p>
                   </div>
                 </li>
               ) : (checklists[selectedDay] || []).map((task, index) => {
@@ -381,12 +372,12 @@ export function DailyChecklist({
                 return (
                 <li
                   key={task.text}
-                  className={`border-2 rounded-2xl overflow-hidden transition-all duration-300 ${
+                  className={`border rounded-md transition-colors ${
                     task.status === 'completed'
-                      ? 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-emerald-100/50 shadow-lg shadow-emerald-200/40'
+                      ? 'border-emerald-300 bg-emerald-50'
                       : task.status === 'not_completed'
-                      ? 'border-red-200 bg-gradient-to-r from-red-50 to-red-100/50 shadow-lg shadow-red-200/40'
-                      : 'border-gray-200 hover:border-indigo-300 hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-white hover:shadow-lg hover:shadow-indigo-200/30 bg-white'
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
                   }`}
                 >
                   {noteIndex === index ? (
@@ -394,38 +385,40 @@ export function DailyChecklist({
                       <textarea
                         value={noteText}
                         onChange={(e) => setNoteText(e.target.value)}
-                        className="w-full border-2 border-gray-200 rounded-xl p-3 resize-none focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/20 transition-all"
+                        className="w-full border border-gray-300 rounded-md p-3 resize-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors text-base"
                         placeholder="Add note about today's habit..."
                         rows={3}
                         autoFocus
                       />
-                      <div className="flex justify-end mt-3">
+                      <div className="flex justify-end mt-2">
                         <button
                           onClick={() => saveTaskNote(index)}
-                          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-md"
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm flex items-center gap-1.5"
                         >
                           <Save className="w-4 h-4" />
+                          <span>Save</span>
                         </button>
                       </div>
                     </div>
                   ) : editIndex === index ? (
                     <div className="p-5">
-                      <p className="text-sm text-gray-600 mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2">
+                      <p className="text-sm text-amber-700 mb-3 bg-amber-50 border border-amber-200 rounded-md p-2">
                         ⚠️ Changes apply from today forward. Past records remain unchanged.
                       </p>
                       <input
                         type="text"
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
-                        className="w-full border-2 border-gray-200 rounded-xl p-3 focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/20 transition-all"
+                        className="w-full border border-gray-300 rounded-md p-3 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors text-base"
                         autoFocus
                       />
-                      <div className="flex justify-end mt-3">
+                      <div className="flex justify-end mt-2">
                         <button
                           onClick={() => saveMasterTaskEdit(index)}
-                          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-md"
+                          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm flex items-center gap-1.5"
                         >
                           <Save className="w-4 h-4" />
+                          <span>Save</span>
                         </button>
                       </div>
                     </div>
@@ -433,71 +426,71 @@ export function DailyChecklist({
                     <>
                       <div className="p-5">
                         <div className="flex justify-between items-center">
-                          <div className="flex gap-4 items-center flex-1">
+                          <div className="flex gap-3 items-center flex-1">
                             <button
                               onClick={() => toggleTaskStatus(selectedDay, index)}
-                              className={`w-12 h-12 rounded-full border-2 transition-all duration-300 transform hover:scale-110 flex items-center justify-center ${
+                              className={`w-9 h-9 rounded-md border-2 transition-colors flex items-center justify-center ${
                                 task.status === 'completed'
-                                  ? 'bg-gradient-to-br from-emerald-400 to-emerald-600 border-emerald-400 shadow-lg shadow-emerald-400/50 hover:shadow-xl hover:shadow-emerald-400/60'
+                                  ? 'bg-emerald-500 border-emerald-500'
                                   : task.status === 'not_completed'
-                                  ? 'bg-gradient-to-br from-red-400 to-red-600 border-red-400 shadow-lg shadow-red-400/50 hover:shadow-xl hover:shadow-red-400/60'
-                                  : 'bg-white border-gray-300 hover:border-indigo-400 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-indigo-100 hover:shadow-lg hover:shadow-indigo-400/30'
+                                  ? 'bg-red-500 border-red-500'
+                                  : 'bg-white border-gray-300 hover:border-gray-400'
                               }`}
                             >
                               {task.status === 'completed' && (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
                                   <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                               )}
                               {task.status === 'not_completed' && (
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white">
                                   <path d="M18 6L6 18M6 6l12 12"></path>
                                 </svg>
                               )}
                             </button>
                             
                             
-                            <span className={`flex-1 flex items-center text-lg ${task.status === 'completed' ? 'line-through text-gray-500' : task.status === 'not_completed' ? 'text-red-700 font-medium' : 'text-gray-800'}`}>
+                            <span className={`flex-1 flex items-center text-base ${task.status === 'completed' ? 'line-through text-gray-500' : task.status === 'not_completed' ? 'text-red-700 font-medium' : 'text-gray-800'}`}>
                               {task.text}
                               {task.notes && (
-                                <span className="ml-3 text-gray-500 text-sm bg-gray-100 px-2 py-1 rounded-lg truncate max-w-[150px]">
+                                <span className="ml-2 text-gray-500 text-xs bg-gray-100 px-2 py-0.5 rounded truncate max-w-[150px]">
                                   📝 {task.notes.slice(0, 30)}
                                   {task.notes.length > 30 ? '…' : ''}
                                 </span>
                               )}
                               {streak > 1 && (
-                                <span className="ml-3 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-sm px-3 py-1 rounded-full font-medium shadow-md shadow-orange-400/30">
+                                <span className="ml-2 bg-orange-500 text-white text-xs px-2.5 py-1 rounded-full font-medium">
                                   🔥 {streak} days
                                 </span>
                               )}
                             </span>
                           </div>
                           
-                          <div className="flex gap-2 ml-4">
+                          <div className="flex gap-1 ml-3">
                             <button
                               onClick={() => editTaskNote(index)}
-                              className={`p-2.5 rounded-lg transition-all duration-200 ${
+                              className={`p-1.5 rounded transition-colors ${
                                 task.notes 
-                                  ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' 
-                                  : 'text-gray-500 bg-gray-50 hover:bg-gray-100 hover:text-gray-700'
+                                  ? 'text-emerald-600 bg-emerald-100 hover:bg-emerald-200' 
+                                  : 'text-gray-500 bg-gray-100 hover:bg-gray-200'
                               }`}
                               title="Add note for today's habit"
                             >
-                              <MessageSquare className="w-4 h-4" fill={task.notes ? 'currentColor' : 'none'} />
+                              <MessageSquare className="w-3.5 h-3.5" fill={task.notes ? 'currentColor' : 'none'} />
                             </button>
                             <button
                               onClick={() => editMasterTask(index)}
-                              className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-200"
+                              className="p-1.5 text-blue-600 bg-blue-100 hover:bg-blue-200 rounded transition-colors"
                               title="Edit habit (from today onward)"
                             >
-                              <Edit2 className="w-4 h-4" />
+                              <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => removeMasterTask(index)}
-                              className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all duration-200"
+                              className="p-1.5 text-red-600 bg-red-100 hover:bg-red-200 rounded transition-colors"
                               title="Remove habit (from today onward)"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -508,7 +501,7 @@ export function DailyChecklist({
                           className="mt-0 px-5 pb-5"
                           onClick={() => editTaskNote(index)}
                         >
-                          <div className="bg-gray-50 border border-gray-200 p-4 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
+                          <div className="bg-gray-50 border border-gray-200 p-3 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
                             <p className="text-sm text-gray-700 whitespace-pre-wrap">{task.notes}</p>
                           </div>
                         </div>
@@ -519,30 +512,30 @@ export function DailyChecklist({
                 );
               })}
             </ul>
-            <div className="mt-6 flex gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div className="mt-4 flex gap-2 bg-gray-50 p-4 rounded-md border border-gray-200">
               <input
                 type="text"
                 value={newTaskText}
                 onChange={(e) => setNewTaskText(e.target.value)}
                 placeholder="Add a new habit..."
-                className="flex-1 px-4 py-3 bg-white border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:outline-none focus:ring-4 focus:ring-indigo-400/20 transition-all text-gray-800 placeholder-gray-400"
+                className="flex-1 px-3 py-2.5 bg-white border border-gray-300 rounded-md focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors text-base text-gray-800 placeholder-gray-400"
                 onKeyDown={(e) => e.key === 'Enter' && addMasterTask()}
               />
               <button
                 onClick={addMasterTask}
-                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 shadow-lg shadow-indigo-600/25 font-medium flex items-center gap-2"
+                className="px-4 py-2.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-base font-medium flex items-center gap-1.5"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 <span>Add</span>
               </button>
             </div>
           </>
         ) : (
-          <div className="text-center text-gray-500 py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-              <div className="w-8 h-8 border-4 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
+          <div className="text-center text-gray-500 py-12">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-gray-100 rounded-full mb-3">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
             </div>
-            <p className="text-lg">Loading your habits...</p>
+            <p className="text-sm">Loading your habits...</p>
           </div>
         )}
       </section>
