@@ -76,7 +76,7 @@ export function DailyHabitsHistory({
   
   const calculateCompletionPercentage = (tasks: Task[] | null) => {
     if (!tasks || tasks.length === 0) return 0;
-    const completed = tasks.filter(t => t.completed).length;
+    const completed = tasks.filter(t => t.status === 'completed').length;
     return Math.round((completed / tasks.length) * 100);
   };
   
@@ -124,7 +124,7 @@ export function DailyHabitsHistory({
       const str = `${year}-${month}-${day}`;
       
       const tasks = checklists[str];
-      if (!tasks || tasks.some(t => !t.completed)) break;
+      if (!tasks || tasks.some(t => t.status !== 'completed')) break;
       streak++;
       date.setDate(date.getDate() - 1);
     }
@@ -265,7 +265,7 @@ export function DailyHabitsHistory({
                           ></div>
                         </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {dayData.data.filter(t => t.completed).length}/{dayData.data.length}
+                          {dayData.data.filter(t => t.status === 'completed').length}/{dayData.data.length}
                         </div>
                       </div>
                     )}
@@ -316,7 +316,7 @@ export function DailyHabitsHistory({
                         ></div>
                       </div>
                       <div className="mt-2 text-sm text-gray-500">
-                        {checklists[date].filter(t => t.completed).length} of {checklists[date].length} completed
+                        {checklists[date].filter(t => t.status === 'completed').length} of {checklists[date].length} completed
                       </div>
                     </div>
                   ))}

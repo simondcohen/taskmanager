@@ -106,7 +106,7 @@ function App() {
         if (!loadedChecklists[today] && loadedTemplateTasks.length > 0) {
           loadedChecklists[today] = loadedTemplateTasks.map((task: Task) => ({
             text: task.text,
-            completed: false
+            status: 'unchecked' as const
           }));
         }
         

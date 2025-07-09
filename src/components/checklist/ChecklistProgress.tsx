@@ -7,7 +7,7 @@ interface ChecklistProgressProps {
 
 export function ChecklistProgress({ tasks }: ChecklistProgressProps) {
   const getProgressStats = () => {
-    const completed = tasks.filter(t => t.completed).length;
+    const completed = tasks.filter(t => t.status === 'completed').length;
     const total = tasks.length;
     const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
     return { completed, total, percentage };

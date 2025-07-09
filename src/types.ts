@@ -1,6 +1,6 @@
 export interface Task {
   text: string;
-  completed?: boolean;
+  status?: 'unchecked' | 'completed' | 'not_completed'; // Changed from completed boolean
   completedAt?: string;
   notes?: string;
 }

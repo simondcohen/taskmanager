@@ -63,7 +63,7 @@ export function DailyChecklist({
       // Create a new checklist for this date using the master tasks
       const newChecklist = masterTasks.map((task) => ({
         text: task.text,
-        completed: false
+        status: 'unchecked' as const
       }));
       
       onUpdateChecklists({
@@ -82,7 +82,7 @@ export function DailyChecklist({
       const tasksForDate = checklists[dateStr];
       if (!tasksForDate) break;
       const task = tasksForDate.find(t => t.text === taskText);
-      if (!task || !task.completed) break;
+      if (!task || task.status !== 'completed') break;
       streak++;
       date.setDate(date.getDate() - 1);
     }
@@ -141,7 +141,7 @@ export function DailyChecklist({
       if (dateObj >= selectedDayObj) {
         updatedChecklists[date] = [
           ...updatedChecklists[date],
-          { text: newTaskText.trim(), completed: false }
+          { text: newTaskText.trim(), status: 'unchecked' }
         ];
       }
     });
@@ -215,19 +215,30 @@ export function DailyChecklist({
     const taskText = checklists[dateString][index].text;
     const updatedTasks = checklists[dateString].map(task => {
       if (task.text === taskText) {
+        // Cycle through three states: unchecked -> completed -> not_completed -> unchecked
+        let newStatus: 'unchecked' | 'completed' | 'not_completed';
+        
+        if (!task.status || task.status === 'unchecked') {
+          newStatus = 'completed';
+        } else if (task.status === 'completed') {
+          newStatus = 'not_completed';
+        } else {
+          newStatus = 'unchecked';
+        }
+        
         return {
           ...task,
-          completed: !task.completed
+          status: newStatus
         };
       }
       return task;
     });
     
-    // Sort the tasks to move completed ones to the bottom
+    // Sort the tasks to move completed ones to the bottom while preserving order otherwise
     const sortedTasks = [...updatedTasks].sort((a, b) => {
       // Move completed tasks to the bottom while preserving order otherwise
-      if (a.completed !== b.completed) {
-        return a.completed ? 1 : -1;
+      if ((a.status === 'completed') !== (b.status === 'completed')) {
+        return a.status === 'completed' ? 1 : -1;
       }
       return 0;
     });
@@ -244,7 +255,7 @@ export function DailyChecklist({
   };
 
   const markAllComplete = () => {
-    const updatedTasks = checklists[selectedDay].map(task => ({ ...task, completed: true }));
+    const updatedTasks = checklists[selectedDay].map(task => ({ ...task, status: 'completed' as const }));
     onUpdateChecklists({
       ...checklists,
       [selectedDay]: updatedTasks
@@ -268,7 +279,7 @@ export function DailyChecklist({
           if (dateObj >= selectedDayObj) {
             updatedChecklists[date] = [
               ...updatedChecklists[date],
-              { text, completed: false }
+              { text, status: 'unchecked' as const }
             ];
           }
         });
@@ -357,8 +368,10 @@ export function DailyChecklist({
                 <li
                   key={index}
                   className={`border rounded-lg overflow-hidden transition-all ${
-                    task.completed
+                    task.status === 'completed'
                       ? 'border-green-200 bg-green-50'
+                      : task.status === 'not_completed'
+                      ? 'border-red-200 bg-red-50'
                       : 'border-gray-200 hover:border-indigo-200 hover:bg-indigo-50'
                   }`}
                 >
@@ -408,20 +421,27 @@ export function DailyChecklist({
                             <button
                               onClick={() => toggleTaskStatus(selectedDay, index)}
                               className={`w-8 h-8 rounded-full border transition-colors ${
-                                task.completed
+                                task.status === 'completed'
                                   ? 'bg-green-500 border-green-500'
+                                  : task.status === 'not_completed'
+                                  ? 'bg-red-500 border-red-500'
                                   : 'border-gray-300 hover:border-green-500'
                               }`}
                             >
-                              {task.completed && (
+                              {task.status === 'completed' && (
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
                                   <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                              )}
+                              {task.status === 'not_completed' && (
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-white">
+                                  <path d="M18 6L6 18M6 6l12 12"></path>
                                 </svg>
                               )}
                             </button>
                             
                             
-                            <span className={`flex-1 flex items-center ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                            <span className={`flex-1 flex items-center ${task.status === 'completed' ? 'line-through text-gray-500' : task.status === 'not_completed' ? 'text-red-600' : ''}`}>
                               {task.text}
                               {task.notes && (
                                 <span className="ml-2 text-gray-400 text-xs truncate max-w-[120px]">
@@ -493,7 +513,7 @@ export function DailyChecklist({
                 <Plus className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Press Enter to add habit, Space to toggle completion</p>
+            <p className="text-xs text-gray-500 mt-1">Press Enter to add habit. Click to cycle: Empty → ✓ Completed → ✗ Not Completed → Empty</p>
           </>
         ) : (
           <div className="text-center text-gray-500 py-8">
